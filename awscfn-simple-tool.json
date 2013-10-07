@@ -71,7 +71,7 @@
 
   "Resources" : {
 
-    "WebServer": {  
+    "ConsoleMachine": {
       "Type": "AWS::EC2::Instance",
       "Metadata" : {
         "Comment1" : "Configure the bootstrap helpers to install the Apache Web Server, Java, and Python",
@@ -81,10 +81,10 @@
             "packages" : {
               "yum" : {
                 "mysql55"            : [],
-                "httpd24"            : [],
                 "git-all"            : [],
                 "java-1.7.0-openjdk" : [],
-                "python27"           : []
+                "python27"           : [],
+                "python27-devel"     : []
               }
             },
 
@@ -105,16 +105,8 @@
                 "owner" : "root",
                 "group" : "root"
               }
-            },
-
-            "services" : {
-              "sysvinit" : {
-                "httpd" : {
-                  "enabled"       : "true",
-                  "ensureRunning" : "true"
-                }
-              }
             }
+
           }
         }
       },
@@ -124,7 +116,6 @@
                           { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ] },
         "InstanceType"   : { "Ref" : "InstanceType" },
         "SecurityGroups" : [
-          {"Ref" : "WebServerSecurityGroup"},
           {"Ref" : "SSHSecurityGroup"}
         ],
         "KeyName"        : { "Ref" : "KeyName" },
@@ -140,8 +131,8 @@
           "  exit 1\n",
           "}\n",
 
-          "# Install LAMP packages\n",
-          "/opt/aws/bin/cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r WebServer ",
+          "# Install packages\n",
+          "/opt/aws/bin/cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r ConsoleMachine ",
           "    --region ", { "Ref" : "AWS::Region" }, " || error_exit 'Failed to run cfn-init'\n",
 
           "alternatives --set java /usr/lib/jvm/jre-1.7.0-openjdk.x86_64/bin/java\n",
@@ -154,7 +145,7 @@
           "yum install -y s3cmd\n",
 
           "# All is well so signal success\n",
-          "/opt/aws/bin/cfn-signal -e 0 -r \"LAMP Stack setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
+          "/opt/aws/bin/cfn-signal -e 0 -r \"Tool Stack setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
         ]]}}
       }
     },
@@ -165,20 +156,10 @@
 
     "WaitCondition" : {
       "Type" : "AWS::CloudFormation::WaitCondition",
-      "DependsOn" : "WebServer",
+      "DependsOn" : "ConsoleMachine",
       "Properties" : {
         "Handle" : {"Ref" : "WaitHandle"},
-        "Timeout" : "300"
-      }
-    },
-
-    "WebServerSecurityGroup" : {
-      "Type" : "AWS::EC2::SecurityGroup",
-      "Properties" : {
-        "GroupDescription" : "Enable HTTP access via port 80",
-        "SecurityGroupIngress" : [
-          {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0"}
-        ]
+        "Timeout" : "600"
       }
     },
 
@@ -190,14 +171,6 @@
           {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref" : "SSHLocation"}}
         ]
       }
-    }
-
-  },
-
-  "Outputs" : {
-    "WebsiteURL" : {
-      "Value" : { "Fn::Join" : ["", ["http://", { "Fn::GetAtt" : [ "WebServer", "PublicDnsName" ]}]] },
-      "Description" : "URL for newly created LAMP stack"
     }
   }
 }
