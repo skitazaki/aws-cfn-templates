@@ -1,0 +1,265 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Description" : "Solr 4 on EC2.",
+
+  "Parameters" : {
+
+    "KeyName" : {
+      "Description" : "Name of an existing EC2 KeyPair to enable SSH access to the instances",
+      "Type" : "String",
+      "MinLength": "1",
+      "MaxLength": "64",
+      "AllowedPattern" : "[-_ a-zA-Z0-9]*",
+      "ConstraintDescription" : "can contain only alphanumeric characters, spaces, dashes and underscores."
+    },
+
+    "InstanceType" : {
+      "Description" : "SolrServer EC2 instance type",
+      "Type" : "String",
+      "Default" : "m1.small",
+      "AllowedValues" : [
+        "t1.micro", "m1.small", "m1.medium", "m1.large", "m1.xlarge",
+        "m2.xlarge", "m2.2xlarge", "m2.4xlarge",
+        "m3.xlarge", "m3.2xlarge",
+        "c1.medium", "c1.xlarge",
+        "cc1.4xlarge","cc2.8xlarge","cg1.4xlarge"],
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+
+    "SSHLocation" : {
+      "Description" : " The IP address range that can be used to SSH to the EC2 instances",
+      "Type": "String",
+      "MinLength": "9",
+      "MaxLength": "18",
+      "Default": "0.0.0.0/0",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+      "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+    }
+  },
+
+  "Mappings" : {
+    "AWSInstanceType2Arch" : {
+      "t1.micro"    : { "Arch" : "64" },
+      "m1.small"    : { "Arch" : "64" },
+      "m1.medium"   : { "Arch" : "64" },
+      "m1.large"    : { "Arch" : "64" },
+      "m1.xlarge"   : { "Arch" : "64" },
+      "m2.xlarge"   : { "Arch" : "64" },
+      "m2.2xlarge"  : { "Arch" : "64" },
+      "m2.4xlarge"  : { "Arch" : "64" },
+      "m3.xlarge"   : { "Arch" : "64" },
+      "m3.2xlarge"  : { "Arch" : "64" },
+      "c1.medium"   : { "Arch" : "64" },
+      "c1.xlarge"   : { "Arch" : "64" },
+      "cc1.4xlarge" : { "Arch" : "64HVM" },
+      "cc2.8xlarge" : { "Arch" : "64HVM" },
+      "cg1.4xlarge" : { "Arch" : "64HVM" }
+    },
+
+    "AWSRegionArch2AMI" : {
+      "us-east-1"     : { "32" : "ami-5675ee3f", "64" : "ami-3275ee5b", "64HVM" : "ami-da76edb3" },
+      "us-west-2"     : { "32" : "ami-d0be2ae0", "64" : "ami-ecbe2adc", "64HVM" : "ami-f4be2ac4" },
+      "us-west-1"     : { "32" : "ami-d8d1fc9d", "64" : "ami-66d1fc23", "64HVM" : "ami-b0d6fbf5" },
+      "eu-west-1"     : { "32" : "ami-6893991c", "64" : "ami-44939930", "64HVM" : "ami-a29298d6" },
+      "ap-southeast-1": { "32" : "ami-a29ed2f0", "64" : "ami-aa9ed2f8", "64HVM" : "ami-ec9ed2be" },
+      "ap-northeast-1": { "32" : "ami-0f3fbf0e", "64" : "ami-173fbf16", "64HVM" : "ami-833ebe82" },
+      "ap-southeast-2": { "32" : "ami-383eaf02", "64" : "ami-363eaf0c", "64HVM" : "ami-ce3faef4" },
+      "sa-east-1"     : { "32" : "ami-a56bb0b8", "64" : "ami-dd6bb0c0", "64HVM" : "ami-bb6bb0a6" }
+    }
+
+  },
+
+  "Resources": {
+
+    "CfnUser" : {
+      "Type" : "AWS::IAM::User",
+      "Properties" : {
+        "Path": "/",
+        "Policies": [{
+          "PolicyName": "root",
+          "PolicyDocument": { "Statement":[{
+            "Effect":"Allow",
+            "Action":"cloudformation:DescribeStackResource",
+            "Resource":"*"
+          }]}
+        }]
+      }
+    },
+
+    "HostKeys" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {
+        "UserName" : {"Ref": "CfnUser"}
+      }
+    },
+
+    "SolrServer" : {
+      "Type" : "AWS::EC2::Instance",
+      "Metadata" : {
+        "AWS::CloudFormation::Init" : {
+          "config" : {
+
+            "packages" : {
+              "yum" : {
+                "httpd24" : [],
+                "tomcat7" : [],
+                "log4j" : [],
+                "git-all" : [],
+                "java-1.7.0-openjdk" : []
+              }
+            },
+            "services" : {
+              "sysvinit" : {
+                "httpd" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "false"
+                },
+                "tomcat7" : {
+                  "enabled" : "true",
+                  "ensureRunning" : "false"
+                }
+              }
+            },
+            "sources" : {
+              "/opt/solr" : "http://ftp.jaist.ac.jp/pub/apache/lucene/solr/4.3.1/solr-4.3.1.tgz"
+            },
+
+            "files" : {
+              "/etc/httpd/conf.d/proxy.conf": {
+                "content" : { "Fn::Join" : ["", [
+                  "ProxyRequests Off\n",
+                  "ProxyPass /solr4 http://localhost:8080/solr4\n",
+                  "ProxyPassReverse /solr4 http://localhost:8080/solr4\n",
+                  "<Location \"/solr*\">\n",
+                  "    Order allow,deny\n",
+                  "    Allow from all\n",
+                  "</Location>\n"
+                  ]]},
+                "mode"  : "000644",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/usr/share/tomcat7/conf/Catalina/localhost/solr4.xml": {
+                "content" : { "Fn::Join" : ["", [
+                  "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n",
+                  "<Context docBase=\"/usr/local/solr4/solr.war\" crossContext=\"true\">\n",
+                  "    <Environment name=\"solr/home\" type=\"java.lang.String\" value=\"/usr/local/solr4\" override=\"true\"/>\n",
+                  "</Context>\n"
+                  ]]},
+                "mode"  : "000644",
+                "owner" : "tomcat",
+                "group" : "tomcat"
+              }
+            }
+          }
+        }
+      },
+      "Properties" : {
+        "ImageId" : { "Fn::FindInMap" : [ "AWSRegionArch2AMI", { "Ref" : "AWS::Region" },
+                          { "Fn::FindInMap" : [ "AWSInstanceType2Arch", { "Ref" : "InstanceType" }, "Arch" ] } ] },
+        "InstanceType"   : { "Ref" : "InstanceType" },
+        "SecurityGroupIds" : [
+          {"Ref" : "WebServerSecurityGroup"},
+          {"Ref" : "SSHSecurityGroup"}
+        ],
+        "KeyName" : { "Ref" : "KeyName" },
+        "UserData" : { "Fn::Base64" : { "Fn::Join" : ["", [
+          "#!/bin/bash -v\n",
+          "date > /home/ec2-user/starttime\n",
+          "yum update -y\n",
+          "yum update -y aws-cfn-bootstrap\n",
+
+          "# Helper function\n",
+          "function error_exit\n",
+          "{\n",
+          "  /opt/aws/bin/cfn-signal -e 1 -r \"$1\" '", { "Ref" : "WaitHandle" }, "'\n",
+          "  exit 1\n",
+          "}\n",
+
+          "# Install predefined packages\n",
+          "/opt/aws/bin/cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r SolrServer ",
+          "    --access-key ",  { "Ref" : "HostKeys" },
+          "    --secret-key ", {"Fn::GetAtt": ["HostKeys", "SecretAccessKey"]},
+          "    --region ", { "Ref" : "AWS::Region" }, " || error_exit 'Failed to run cfn-init'\n",
+
+          "alternatives --set java /usr/lib/jvm/jre-1.7.0-openjdk.x86_64/bin/java\n",
+
+          "cp -r /opt/solr/solr-4.3.1/example/multicore /usr/local/solr4\n",
+          "rm -rf /usr/local/solr4/exampledocs\n",
+          "cp /opt/solr/solr-4.3.1/dist/solr-4.3.1.war /usr/local/solr4/solr.war\n",
+          "chown -R tomcat:tomcat /usr/local/solr4\n",
+
+          "# Copy logging library and configuration file.\n",
+          "cp /opt/solr/solr-4.3.1/dist/solrj-lib/*slf4j*.jar /usr/share/tomcat7/lib/\n",
+          "cp /opt/solr/solr-4.3.1/example/etc/logging.properties /usr/local/solr4/\n",
+
+          "service httpd start\n",
+          "service tomcat7 start\n",
+
+          "# All is well so signal success\n",
+          "/opt/aws/bin/cfn-signal -e 0 -r \"Solr Stack setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
+        ]]}}
+      }
+    },
+
+    "WebServerEip": {
+      "Type": "AWS::EC2::EIP",
+      "Properties": {
+        "InstanceId": { "Ref": "SolrServer" }
+      }
+    },
+
+    "WaitHandle" : {
+      "Type" : "AWS::CloudFormation::WaitConditionHandle"
+    },
+
+    "WaitCondition" : {
+      "Type" : "AWS::CloudFormation::WaitCondition",
+      "DependsOn" : "SolrServer",
+      "Properties" : {
+        "Handle" : {"Ref" : "WaitHandle"},
+        "Timeout" : "600"
+      }
+    },
+
+    "WebServerSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable HTTP access via port 80",
+        "SecurityGroupIngress" : [
+          {"IpProtocol" : "tcp", "FromPort" : "80", "ToPort" : "80", "CidrIp" : "0.0.0.0/0"}
+        ]
+      }
+    },
+
+    "SSHSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable SSH access via port 22",
+        "SecurityGroupIngress" : [
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref" : "SSHLocation"}}
+        ]
+      }
+    }
+
+  },
+
+  "Outputs" : {
+    "SolrURL" : {
+      "Value" : { "Fn::Join" : ["", ["http://", { "Fn::GetAtt" : [ "SolrServer", "PublicDnsName" ]}, "/solr4"]] },
+      "Description" : "Solr Admin"
+    },
+    "WebServerAvailabilityZone" : {
+      "Value" : { "Fn::GetAtt" : [ "SolrServer", "AvailabilityZone" ]},
+      "Description" : "AvailabilityZone of SolrServer"
+    },
+    "SSHToWebServer" : {
+      "Value" : { "Fn::Join" :["", [
+        "ssh -i $HOME/.ssh/", { "Ref" : "KeyName" }, ".pem",
+        " ec2-user@", { "Ref" : "WebServerEip" }
+      ]] }, 
+      "Description" : "SSH command to connect SolrServer"
+    }
+  }
+}
