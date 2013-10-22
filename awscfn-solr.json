@@ -17,7 +17,7 @@
     "InstanceType" : {
       "Description" : "SolrServer EC2 instance type",
       "Type" : "String",
-      "Default" : "m1.small",
+      "Default" : "t1.micro",
       "AllowedValues" : [
         "t1.micro", "m1.small", "m1.medium", "m1.large", "m1.xlarge",
         "m2.xlarge", "m2.2xlarge", "m2.4xlarge",
@@ -25,6 +25,16 @@
         "c1.medium", "c1.xlarge",
         "cc1.4xlarge","cc2.8xlarge","cg1.4xlarge"],
       "ConstraintDescription" : "must be a valid EC2 instance type."
+    },
+
+    "SolrVersion" : {
+      "Description" : "Solr version",
+      "Type" : "String",
+      "Default" : "4.5.0",
+      "MinLength": "5",
+      "MaxLength": "5",
+      "AllowedPattern" : "[0-9]\\.[0-9]\\.[0-9]",
+      "ConstraintDescription" : "must be semantic versioning."
     },
 
     "SSHLocation" : {
@@ -122,7 +132,10 @@
               }
             },
             "sources" : {
-              "/opt/solr" : "http://ftp.jaist.ac.jp/pub/apache/lucene/solr/4.3.1/solr-4.3.1.tgz"
+              "/opt/solr" : { "Fn::Join" : ["", [
+                "http://ftp.jaist.ac.jp/pub/apache/lucene/solr/",
+                { "Ref" : "SolrVersion" },
+                "/solr-", { "Ref" : "SolrVersion" }, ".tgz"]]}
             },
 
             "files" : {
@@ -185,14 +198,18 @@
 
           "alternatives --set java /usr/lib/jvm/jre-1.7.0-openjdk.x86_64/bin/java\n",
 
-          "cp -r /opt/solr/solr-4.3.1/example/multicore /usr/local/solr4\n",
-          "rm -rf /usr/local/solr4/exampledocs\n",
-          "cp /opt/solr/solr-4.3.1/dist/solr-4.3.1.war /usr/local/solr4/solr.war\n",
-          "chown -R tomcat:tomcat /usr/local/solr4\n",
+          "SOLR_VERSION=", { "Ref" : "SolrVersion" }, "\n",
+          "SOLR_BASEDIR=/opt/solr/solr-$SOLR_VERSION\n",
+          "SOLR_INSTALL=/usr/local/solr4\n",
+
+          "cp -r $SOLR_BASEDIR/example/multicore $SOLR_INSTALL\n",
+          "rm -rf $SOLR_INSTALL/exampledocs\n",
+          "cp $SOLR_BASEDIR/dist/solr-$SOLR_VERSION.war $SOLR_INSTALL/solr.war\n",
+          "chown -R tomcat:tomcat $SOLR_INSTALL\n",
 
           "# Copy logging library and configuration file.\n",
-          "cp /opt/solr/solr-4.3.1/dist/solrj-lib/*slf4j*.jar /usr/share/tomcat7/lib/\n",
-          "cp /opt/solr/solr-4.3.1/example/etc/logging.properties /usr/local/solr4/\n",
+          "cp $SOLR_BASEDIR/dist/solrj-lib/*slf4j*.jar /usr/share/tomcat7/lib/\n",
+          "cp $SOLR_BASEDIR/example/etc/logging.properties $SOLR_INSTALL/\n",
 
           "service httpd start\n",
           "service tomcat7 start\n",

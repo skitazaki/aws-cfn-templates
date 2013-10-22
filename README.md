@@ -58,12 +58,12 @@ Solr
 
 * JDK 1.7
 * Tomcat 7
-* Solr 4.3
+* Solr 4.5 (``SolrVersion`` parameter)
 
 Usage:
 
     $ aws cloudformation create-stack \
         --stack-name solr \
         --template-body file://`pwd`/awscfn-solr.json \
-        --parameters ParameterKey=KeyName,ParameterValue=${EC2_KEYNAME}
+        --parameters ParameterKey=KeyName,ParameterValue=${EC2_KEYNAME} \
         --capabilities CAPABILITY_IAM
