@@ -3,33 +3,33 @@ AWS CloudFormation Templates
 
 Collection of CloudFormation templates.
 
+To use AWS CLI tools, install *awscli*.
+[http://aws.amazon.com/jp/cli/]
+
+1. Follow the instruction here, using *pip*.
+   [https://pypi.python.org/pypi/awscli]
+
+2. Create configuration file including:
+    * aws_access_key_id
+    * aws_secret_access_key
+    * region
+
+3. Set environmetal variable **AWS_CONFIG_FILE** to point the configuration file.
+
+To see parameters and capabilities, run ``validate-template`` command.
+
+    $ aws cloudformation validate-template --template-body awscfn-solr.json
+
+To delete stack, use ``delete-stack`` command.
+
+    $ aws cloudformation delete-stack --stack-name {STACK_NAME}
+
+To show the list of stacks, use ``describe-stacks`` command.
+
+    $ aws cloudformation describe-stacks
+
 Check "I acknowledge that this this template may create IAM resources" on when creating a stack.
 Or "CAPABILITY_IAM" on the command line option if the template requires IAM Role.
-
-To use CloudFormation CLI tools:
-
-1. Download and unzip archive from here.
-    http://aws.amazon.com/developertools/2555753788650372
-
-2. Assign following environmental variables.
-    * EC2_REGION
-    * AWS_CLOUDFORMATION_HOME
-    * AWS_CREDENTIAL_FILE
-
-Example:
-
-    export EC2_REGION=ap-northeast-1
-    export AWS_CLOUDFORMATION_HOME=$HOME/.awstools/AWSCloudFormation-1.0.12
-    export AWS_CREDENTIAL_FILE=$HOME/.aws-credential
-    export PATH=$PATH:$AWS_CLOUDFORMATION_HOME/bin
-
-To see parameters and capabilities, run ``cfn-validate-template`` command.
-
-    $ cfn-validate-template --template-file awscfn-solr.json
-
-To delete stack, use ``cfn-delete-stack``.
-
-    $ cfn-delete-stack {STACK_NAME}
 
 Simple Tool
 ------------
@@ -39,13 +39,15 @@ Simple Tool
 * Python 2.7 (``virtualenv`` + ``pip``)
 * JDK 1.7
 * Git
-* S3 Tools (``s3cmd``)
+* S3 Tools (``s3cmd``) - will be removed due to *awscli*
 * MySQL 5.5 Client
 
 Usage:
 
-    $ cfn-create-stack simple-tool --template-file awscfn-simple-tool.json \
-        --parameters KeyName=${EC2_KEYNAME}
+    $ aws cloudformation create-stack \
+        --stack-name simple-tool \
+        --template-body file://`pwd`/awscfn-simple-tool.json \
+        --parameters ParameterKey=KeyName,ParameterValue=${EC2_KEYNAME}
 
 Solr
 -----
@@ -58,6 +60,8 @@ Solr
 
 Usage:
 
-    $ cfn-create-stack solr --template-file awscfn-solr.json \
-        --parameters KeyName=${EC2_KEYNAME} \
+    $ aws cloudformation create-stack \
+        --stack-name solr \
+        --template-body file://`pwd`/awscfn-solr.json \
+        --parameters ParameterKey=KeyName,ParameterValue=${EC2_KEYNAME}
         --capabilities CAPABILITY_IAM
