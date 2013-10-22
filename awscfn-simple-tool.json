@@ -14,9 +14,9 @@
     },
 
     "InstanceType" : {
-      "Description" : "WebServer EC2 instance type",
+      "Description" : "Tool machine EC2 instance type",
       "Type" : "String",
-      "Default" : "m1.small",
+      "Default" : "t1.micro",
       "AllowedValues" : [
         "t1.micro", "m1.small", "m1.medium", "m1.large", "m1.xlarge",
         "m2.xlarge", "m2.2xlarge", "m2.4xlarge",
@@ -80,8 +80,11 @@
           "config" : {
             "packages" : {
               "yum" : {
+                "gcc47"              : [],
+                "gcc47-go"           : [],
                 "mysql55"            : [],
                 "git-all"            : [],
+                "jq"                 : [],
                 "java-1.7.0-openjdk" : [],
                 "python27"           : [],
                 "python27-devel"     : []
@@ -89,9 +92,9 @@
             },
 
             "files" : {
-              "/home/ec2-user/.boto": {
+              "/home/ec2-user/.aws-credential": {
                 "content" : { "Fn::Join" : ["", [
-                  "[Credentials]\n",
+                  "[default]\n",
                   "aws_access_key_id = YOUR_ACCESS_KEY\n",
                   "aws_secret_access_key = YOUR_SECRET_KEY\n"
                   ]]},

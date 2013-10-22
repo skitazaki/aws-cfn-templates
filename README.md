@@ -38,9 +38,11 @@ Simple Tool
 
 * Python 2.7 (``virtualenv`` + ``pip``)
 * JDK 1.7
+* GCC 4.7
 * Git
 * S3 Tools (``s3cmd``) - will be removed due to *awscli*
 * MySQL 5.5 Client
+* jq
 
 Usage:
 
