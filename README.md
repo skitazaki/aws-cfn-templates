@@ -3,11 +3,9 @@ AWS CloudFormation Templates
 
 Collection of CloudFormation templates.
 
-To use AWS CLI tools, install *awscli*.
-[http://aws.amazon.com/jp/cli/]
+To use AWS CLI tools, install [*awscli*](http://aws.amazon.com/jp/cli/).
 
-1. Follow the instruction here, using *pip*.
-   [https://pypi.python.org/pypi/awscli]
+1. Follow the instruction, using [*pip*](https://pypi.python.org/pypi/awscli).
 
 2. Create configuration file including:
     * aws_access_key_id
@@ -18,7 +16,7 @@ To use AWS CLI tools, install *awscli*.
 
 To see parameters and capabilities, run ``validate-template`` command.
 
-    $ aws cloudformation validate-template --template-body awscfn-solr.json
+    $ aws cloudformation validate-template --template-body file://`pwd`/awscfn-solr.json
 
 To delete stack, use ``delete-stack`` command.
 
@@ -37,6 +35,7 @@ Simple Tool
 ``awscfn-simple-tool.json`` is a template of simple command line tool including:
 
 * Python 2.7 (``virtualenv`` + ``pip``)
+* Python 3.3 (*PythonVersion* parameter)
 * JDK 1.7
 * GCC 4.7
 * Git
@@ -58,7 +57,7 @@ Solr
 
 * JDK 1.7
 * Tomcat 7
-* Solr 4.5 (``SolrVersion`` parameter)
+* Solr 4.5 (*SolrVersion* parameter)
 
 Usage:
 

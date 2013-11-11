@@ -26,6 +26,16 @@
       "ConstraintDescription" : "must be a valid EC2 instance type."
     },
 
+    "PythonVersion" : {
+      "Description" : "Python version",
+      "Type" : "String",
+      "Default" : "3.3.2",
+      "MinLength": "5",
+      "MaxLength": "5",
+      "AllowedPattern" : "[0-9]\\.[0-9]\\.[0-9]",
+      "ConstraintDescription" : "must be semantic versioning."
+    },
+
     "SSHLocation" : {
       "Description" : " The IP address range that can be used to SSH to the EC2 instances",
       "Type": "String",
@@ -81,7 +91,9 @@
             "packages" : {
               "yum" : {
                 "gcc47"              : [],
-                "gcc47-go"           : [],
+                "gcc47-c++"          : [],
+                "bzip2-devel"        : [],
+                "openssl-devel"      : [],
                 "mysql55"            : [],
                 "git-all"            : [],
                 "jq"                 : [],
@@ -108,8 +120,14 @@
                 "owner" : "root",
                 "group" : "root"
               }
-            }
+            },
 
+            "sources" : {
+              "/usr/local/src" : { "Fn::Join" : ["", [
+                "http://python.org/ftp/python/",
+                { "Ref" : "PythonVersion" },
+                "/Python-", { "Ref" : "PythonVersion" }, ".tar.bz2"]]}
+            }
           }
         }
       },
@@ -147,6 +165,14 @@
 
           "yum install -y s3cmd\n",
 
+          "PYTHON_VERSION=", { "Ref" : "PythonVersion" }, "\n",
+          "PYTHON_SRCDIR=/usr/local/src/Python-$PYTHON_VERSION\n",
+          "PYTHON_INSTALL=/opt/python/Python-$PYTHON_VERSION\n",
+
+          "cd $PYTHON_SRCDIR\n",
+          "./configure --prefix $PYTHON_INSTALL\n",
+          "make && make install\n",
+
           "# All is well so signal success\n",
           "/opt/aws/bin/cfn-signal -e 0 -r \"Tool Stack setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
         ]]}}
@@ -162,7 +188,7 @@
       "DependsOn" : "ConsoleMachine",
       "Properties" : {
         "Handle" : {"Ref" : "WaitHandle"},
-        "Timeout" : "600"
+        "Timeout" : "900"
       }
     },
 
