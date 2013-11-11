@@ -95,6 +95,7 @@
                 "bzip2-devel"        : [],
                 "openssl-devel"      : [],
                 "mysql55"            : [],
+                "postgresql9"        : [],
                 "git-all"            : [],
                 "jq"                 : [],
                 "java-1.7.0-openjdk" : [],

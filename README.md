@@ -41,6 +41,7 @@ Simple Tool
 * Git
 * S3 Tools (``s3cmd``) - will be removed due to *awscli*
 * MySQL 5.5 Client
+* PostgreSQL 9.x Client
 * jq
 
 Usage:
