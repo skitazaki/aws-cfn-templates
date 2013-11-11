@@ -202,5 +202,16 @@
         ]
       }
     }
+  },
+
+  "Outputs" : {
+    "SSHToWebServer" : {
+      "Value" : { "Fn::Join" :["", [
+        "ssh -i $HOME/.ssh/", { "Ref" : "KeyName" }, ".pem",
+        " ec2-user@", { "Fn::GetAtt" : [ "ConsoleMachine", "PublicDnsName" ]}
+      ]] }, 
+      "Description" : "SSH command to connect ConsoleMachine"
+    }
   }
+
 }
