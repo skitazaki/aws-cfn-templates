@@ -115,6 +115,14 @@
                 "owner" : "ec2-user",
                 "group" : "ec2-user"
               },
+              "/etc/profile.d/nvm.sh": {
+                "content" : { "Fn::Join" : ["", [
+                  "source /opt/nvm/nvm-master/nvm.sh\n"
+                  ]]},
+                "mode"  : "000644",
+                "owner" : "root",
+                "group" : "root"
+              },
               "/etc/yum.repos.d/s3tools.repo": {
                 "source" : "http://s3tools.org/repo/RHEL_6/s3tools.repo",
                 "mode"  : "000644",
@@ -127,7 +135,8 @@
               "/usr/local/src" : { "Fn::Join" : ["", [
                 "http://python.org/ftp/python/",
                 { "Ref" : "PythonVersion" },
-                "/Python-", { "Ref" : "PythonVersion" }, ".tar.bz2"]]}
+                "/Python-", { "Ref" : "PythonVersion" }, ".tar.bz2"]]},
+              "/opt/nvm": "https://github.com/creationix/nvm/archive/master.zip"
             }
           }
         }
@@ -173,6 +182,8 @@
           "cd $PYTHON_SRCDIR\n",
           "./configure --prefix $PYTHON_INSTALL\n",
           "make && make install\n",
+
+          "chown -R ec2-user:ec2-user /opt/nvm\n",
 
           "# All is well so signal success\n",
           "/opt/aws/bin/cfn-signal -e 0 -r \"Tool Stack setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"

@@ -43,6 +43,7 @@ Simple Tool
 * MySQL 5.5 Client
 * PostgreSQL 9.x Client
 * jq
+* nvm
 
 Usage:
 
