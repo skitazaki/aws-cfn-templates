@@ -132,12 +132,6 @@
                 "mode"  : "000644",
                 "owner" : "root",
                 "group" : "root"
-              },
-              "/etc/yum.repos.d/s3tools.repo": {
-                "source" : "http://s3tools.org/repo/RHEL_6/s3tools.repo",
-                "mode"  : "000644",
-                "owner" : "root",
-                "group" : "root"
               }
             },
 
@@ -182,8 +176,6 @@
           "python27 distribute_setup.py\n",
           "easy_install-2.7 pip\n",
           "pip-2.7 install virtualenv\n",
-
-          "yum install -y s3cmd\n",
 
           "PYTHON_VERSION=", { "Ref" : "PythonVersion" }, "\n",
           "PYTHON_SRCDIR=/usr/local/src/Python-$PYTHON_VERSION\n",
