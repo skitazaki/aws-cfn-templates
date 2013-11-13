@@ -44,6 +44,7 @@ Simple Tool
 * PostgreSQL 9.x Client
 * jq
 * nvm
+* rbenv (+ ruby-build)
 
 Usage:
 

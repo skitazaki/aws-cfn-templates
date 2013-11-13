@@ -117,7 +117,17 @@
               },
               "/etc/profile.d/nvm.sh": {
                 "content" : { "Fn::Join" : ["", [
-                  "source /opt/nvm/nvm-master/nvm.sh\n"
+                  "source /opt/venv/nvm/nvm-master/nvm.sh\n"
+                  ]]},
+                "mode"  : "000644",
+                "owner" : "root",
+                "group" : "root"
+              },
+              "/etc/profile.d/rbenv.sh": {
+                "content" : { "Fn::Join" : ["", [
+                  "export RBENV_ROOT=/opt/venv/rbenv\n",
+                  "export PATH=$RBENV_ROOT/bin:$PATH\n",
+                  "eval \"$(rbenv init -)\"\n"
                   ]]},
                 "mode"  : "000644",
                 "owner" : "root",
@@ -136,7 +146,7 @@
                 "http://python.org/ftp/python/",
                 { "Ref" : "PythonVersion" },
                 "/Python-", { "Ref" : "PythonVersion" }, ".tar.bz2"]]},
-              "/opt/nvm": "https://github.com/creationix/nvm/archive/master.zip"
+              "/opt/venv/nvm": "https://github.com/creationix/nvm/archive/master.zip"
             }
           }
         }
@@ -183,7 +193,9 @@
           "./configure --prefix $PYTHON_INSTALL\n",
           "make && make install\n",
 
-          "chown -R ec2-user:ec2-user /opt/nvm\n",
+          "git clone https://github.com/sstephenson/rbenv.git /opt/venv/rbenv\n",
+          "git clone https://github.com/sstephenson/ruby-build.git /opt/venv/rbenv/plugins/ruby-build\n",
+          "chown -R ec2-user:ec2-user /opt/venv\n",
 
           "# All is well so signal success\n",
           "/opt/aws/bin/cfn-signal -e 0 -r \"Tool Stack setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
