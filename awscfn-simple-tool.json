@@ -84,7 +84,7 @@
     "ConsoleMachine": {
       "Type": "AWS::EC2::Instance",
       "Metadata" : {
-        "Comment1" : "Configure the bootstrap helpers to install the Apache Web Server, Java, and Python",
+        "Comment1" : "Configure the bootstrap helpers to install GCC, Java, and Python",
 
         "AWS::CloudFormation::Init" : {
           "config" : {
@@ -112,6 +112,25 @@
                   "aws_secret_access_key = YOUR_SECRET_KEY\n"
                   ]]},
                 "mode"  : "000644",
+                "owner" : "ec2-user",
+                "group" : "ec2-user"
+              },
+              "/home/ec2-user/build.sh": {
+                "content" : { "Fn::Join" : ["", [
+                  "#!/bin/sh\n",
+                  "source /etc/profile.d/nvm.sh\n",
+                  "nvm install 0.10\n",
+                  "nvm alias default 0.10\n",
+                  "nvm use default\n",
+                  "rbenv install 2.0.0-p247\n",
+                  "/opt/python/Python-", { "Ref" : "PythonVersion" }, "/bin/pyvenv --system-site-packages $HOME/.pyvenv/default\n",
+                  "echo \"source $HOME/.pyvenv/default/bin/activate\" >> $HOME/.bash_profile\n",
+                  "source $HOME/.pyvenv/default/bin/activate\n",
+                  "python3 /usr/local/src/distribute_setup.py\n",
+                  "easy_install-3.3 pip\n",
+                  "pip-3.3 install httpie\n"
+                  ]]},
+                "mode"  : "000755",
                 "owner" : "ec2-user",
                 "group" : "ec2-user"
               },
@@ -172,8 +191,8 @@
 
           "alternatives --set java /usr/lib/jvm/jre-1.7.0-openjdk.x86_64/bin/java\n",
 
-          "curl -O http://python-distribute.org/distribute_setup.py\n",
-          "python27 distribute_setup.py\n",
+          "curl http://python-distribute.org/distribute_setup.py > /usr/local/src/distribute_setup.py\n",
+          "python27 /usr/local/src/distribute_setup.py\n",
           "easy_install-2.7 pip\n",
           "pip-2.7 install virtualenv\n",
 
@@ -184,6 +203,7 @@
           "cd $PYTHON_SRCDIR\n",
           "./configure --prefix $PYTHON_INSTALL\n",
           "make && make install\n",
+          "cd -\n",
 
           "git clone https://github.com/sstephenson/rbenv.git /opt/venv/rbenv\n",
           "git clone https://github.com/sstephenson/ruby-build.git /opt/venv/rbenv/plugins/ruby-build\n",
@@ -220,7 +240,7 @@
   },
 
   "Outputs" : {
-    "SSHToWebServer" : {
+    "SSHCommand" : {
       "Value" : { "Fn::Join" :["", [
         "ssh -i $HOME/.ssh/", { "Ref" : "KeyName" }, ".pem",
         " ec2-user@", { "Fn::GetAtt" : [ "ConsoleMachine", "PublicDnsName" ]}
