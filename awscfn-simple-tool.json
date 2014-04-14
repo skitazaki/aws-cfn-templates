@@ -29,7 +29,7 @@
     "PythonVersion" : {
       "Description" : "Python version",
       "Type" : "String",
-      "Default" : "3.3.2",
+      "Default" : "3.3.5",
       "MinLength": "5",
       "MaxLength": "5",
       "AllowedPattern" : "[0-9]\\.[0-9]\\.[0-9]",
@@ -67,14 +67,14 @@
     },
 
     "AWSRegionArch2AMI" : {
-      "us-east-1"     : { "32" : "ami-51792c38", "64" : "ami-35792c5c", "64HVM" : "ami-69792c00" },
-      "us-west-2"     : { "32" : "ami-ec3ea1dc", "64" : "ami-d03ea1e0", "64HVM" : "ami-e43ea1d4" },
-      "us-west-1"     : { "32" : "ami-667b4f23", "64" : "ami-687b4f2d", "64HVM" : "ami-4e7b4f0b " },
-      "eu-west-1"     : { "32" : "ami-109f7867", "64" : "ami-149f7863", "64HVM" : "ami-209f7857" },
-      "ap-southeast-1": { "32" : "ami-16f2b944", "64" : "ami-14f2b946", "64HVM" : "ami-6af2b938 " },
-      "ap-northeast-1": { "32" : "ami-2f61fe2e", "64" : "ami-3561fe34", "64HVM" : "ami-0961fe08" },
-      "ap-southeast-2": { "32" : "ami-af48d595", "64" : "ami-a148d59b", "64HVM" : "ami-a948d593 " },
-      "sa-east-1"     : { "32" : "ami-636ec97e", "64" : "ami-9f6ec982", "64HVM" : "ami-9d6ec980" }
+      "us-east-1"     : { "32" : "ami-4b726522", "64" : "ami-2f726546", "64HVM" : "ami-51736438" },
+      "us-west-2"     : { "32" : "ami-b6f69f86", "64" : "ami-b8f69f88", "64HVM" : "ami-60f69f50" },
+      "us-west-1"     : { "32" : "ami-faf1cfbf", "64" : "ami-84f1cfc1", "64HVM" : "ami-e6f1cfa3" },
+      "eu-west-1"     : { "32" : "ami-ab21dfdc", "64" : "ami-a921dfde", "64HVM" : "ami-bb21dfcc" },
+      "ap-southeast-1": { "32" : "ami-7a7c2c28", "64" : "ami-787c2c2a", "64HVM" : "ami-727c2c20" },
+      "ap-northeast-1": { "32" : "ami-9fbec39e", "64" : "ami-a1bec3a0", "64HVM" : "ami-ebbfc2ea" },
+      "ap-southeast-2": { "32" : "ami-13c85029", "64" : "ami-0bc85031", "64HVM" : "ami-25c8501f" },
+      "sa-east-1"     : { "32" : "ami-a3de7cbe", "64" : "ami-89de7c94", "64HVM" : "ami-3bde7c26" }
     }
 
   },
@@ -98,7 +98,6 @@
                 "postgresql9"        : [],
                 "git-all"            : [],
                 "jq"                 : [],
-                "java-1.7.0-openjdk" : [],
                 "python27"           : [],
                 "python27-devel"     : []
               }
@@ -122,10 +121,10 @@
                   "nvm install 0.10\n",
                   "nvm alias default 0.10\n",
                   "nvm use default\n",
-                  "rbenv install 2.0.0-p247\n",
-                  "/opt/python/Python-", { "Ref" : "PythonVersion" }, "/bin/pyvenv --system-site-packages $HOME/.pyvenv/default\n",
-                  "echo \"source $HOME/.pyvenv/default/bin/activate\" >> $HOME/.bash_profile\n",
-                  "source $HOME/.pyvenv/default/bin/activate\n",
+                  "rbenv install 2.0.0-p451\n",
+                  "rbenv install 2.1.1\n",
+                  "/opt/python/Python-", { "Ref" : "PythonVersion" }, "/bin/pyvenv --system-site-packages $HOME/.pyvenv/py33\n",
+                  "source $HOME/.pyvenv/py33/bin/activate\n",
                   "python3 /usr/local/src/distribute_setup.py\n",
                   "easy_install-3.3 pip\n",
                   "pip-3.3 install httpie\n"
@@ -158,7 +157,7 @@
               "/usr/local/src" : { "Fn::Join" : ["", [
                 "http://python.org/ftp/python/",
                 { "Ref" : "PythonVersion" },
-                "/Python-", { "Ref" : "PythonVersion" }, ".tar.bz2"]]},
+                "/Python-", { "Ref" : "PythonVersion" }, ".tgz"]]},
               "/opt/venv/nvm": "https://github.com/creationix/nvm/archive/master.zip"
             }
           }
@@ -188,8 +187,6 @@
           "# Install packages\n",
           "/opt/aws/bin/cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r ConsoleMachine ",
           "    --region ", { "Ref" : "AWS::Region" }, " || error_exit 'Failed to run cfn-init'\n",
-
-          "alternatives --set java /usr/lib/jvm/jre-1.7.0-openjdk.x86_64/bin/java\n",
 
           "curl http://python-distribute.org/distribute_setup.py > /usr/local/src/distribute_setup.py\n",
           "python27 /usr/local/src/distribute_setup.py\n",
@@ -224,7 +221,7 @@
       "DependsOn" : "ConsoleMachine",
       "Properties" : {
         "Handle" : {"Ref" : "WaitHandle"},
-        "Timeout" : "900"
+        "Timeout" : "1200"
       }
     },
 
@@ -243,7 +240,7 @@
     "SSHCommand" : {
       "Value" : { "Fn::Join" :["", [
         "ssh -i $HOME/.ssh/", { "Ref" : "KeyName" }, ".pem",
-        " ec2-user@", { "Fn::GetAtt" : [ "ConsoleMachine", "PublicDnsName" ]}
+        " -l ec2-user ", { "Fn::GetAtt" : [ "ConsoleMachine", "PublicDnsName" ]}
       ]] },
       "Description" : "SSH command to connect ConsoleMachine"
     }
