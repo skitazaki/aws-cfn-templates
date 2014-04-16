@@ -26,13 +26,23 @@
       "ConstraintDescription" : "must be a valid EC2 instance type."
     },
 
-    "PythonVersion" : {
-      "Description" : "Python version",
+    "Python33Version" : {
+      "Description" : "Python 3.3.x version",
       "Type" : "String",
       "Default" : "3.3.5",
       "MinLength": "5",
       "MaxLength": "5",
-      "AllowedPattern" : "[0-9]\\.[0-9]\\.[0-9]",
+      "AllowedPattern" : "3\\.3\\.[0-9]",
+      "ConstraintDescription" : "must be semantic versioning."
+    },
+
+    "Python34Version" : {
+      "Description" : "Python 3.4.x version",
+      "Type" : "String",
+      "Default" : "3.4.0",
+      "MinLength": "5",
+      "MaxLength": "5",
+      "AllowedPattern" : "3\\.4\\.[0-9]",
       "ConstraintDescription" : "must be semantic versioning."
     },
 
@@ -104,7 +114,7 @@
             },
 
             "files" : {
-              "/home/ec2-user/.aws-credential": {
+              "/home/ec2-user/.aws/config": {
                 "content" : { "Fn::Join" : ["", [
                   "[default]\n",
                   "aws_access_key_id = YOUR_ACCESS_KEY\n",
@@ -123,7 +133,8 @@
                   "nvm use default\n",
                   "rbenv install 2.0.0-p451\n",
                   "rbenv install 2.1.1\n",
-                  "/opt/python/Python-", { "Ref" : "PythonVersion" }, "/bin/pyvenv --system-site-packages $HOME/.pyvenv/py33\n",
+                  "/opt/python/Python-", { "Ref" : "Python33Version" }, "/bin/pyvenv-3.3 --system-site-packages $HOME/.pyvenv/py33\n",
+                  "/opt/python/Python-", { "Ref" : "Python34Version" }, "/bin/pyvenv-3.4 --system-site-packages $HOME/.pyvenv/py34\n",
                   "source $HOME/.pyvenv/py33/bin/activate\n",
                   "python3 /usr/local/src/distribute_setup.py\n",
                   "easy_install-3.3 pip\n",
@@ -154,10 +165,14 @@
             },
 
             "sources" : {
-              "/usr/local/src" : { "Fn::Join" : ["", [
+              "/usr/local/src/py33" : { "Fn::Join" : ["", [
                 "http://python.org/ftp/python/",
-                { "Ref" : "PythonVersion" },
-                "/Python-", { "Ref" : "PythonVersion" }, ".tgz"]]},
+                { "Ref" : "Python33Version" },
+                "/Python-", { "Ref" : "Python33Version" }, ".tgz"]]},
+              "/usr/local/src/py34" : { "Fn::Join" : ["", [
+                "http://python.org/ftp/python/",
+                { "Ref" : "Python34Version" },
+                "/Python-", { "Ref" : "Python34Version" }, ".tgz"]]},
               "/opt/venv/nvm": "https://github.com/creationix/nvm/archive/master.zip"
             }
           }
@@ -176,6 +191,7 @@
           "#!/bin/bash -v\n",
           "yum update -y\n",
           "yum update -y aws-cfn-bootstrap\n",
+          "yum install --enablerepo epel gdal -y\n",
 
           "# Helper function\n",
           "function error_exit\n",
@@ -193,13 +209,22 @@
           "easy_install-2.7 pip\n",
           "pip-2.7 install virtualenv\n",
 
-          "PYTHON_VERSION=", { "Ref" : "PythonVersion" }, "\n",
-          "PYTHON_SRCDIR=/usr/local/src/Python-$PYTHON_VERSION\n",
+          "PYTHON_VERSION=", { "Ref" : "Python33Version" }, "\n",
+          "PYTHON_SRCDIR=/usr/local/src/py33/Python-$PYTHON_VERSION\n",
           "PYTHON_INSTALL=/opt/python/Python-$PYTHON_VERSION\n",
 
           "cd $PYTHON_SRCDIR\n",
           "./configure --prefix $PYTHON_INSTALL\n",
-          "make && make install\n",
+          "make && make altinstall\n",
+          "cd -\n",
+
+          "PYTHON_VERSION=", { "Ref" : "Python34Version" }, "\n",
+          "PYTHON_SRCDIR=/usr/local/src/py34/Python-$PYTHON_VERSION\n",
+          "PYTHON_INSTALL=/opt/python/Python-$PYTHON_VERSION\n",
+
+          "cd $PYTHON_SRCDIR\n",
+          "./configure --prefix $PYTHON_INSTALL\n",
+          "make && make altinstall\n",
           "cd -\n",
 
           "git clone https://github.com/sstephenson/rbenv.git /opt/venv/rbenv\n",

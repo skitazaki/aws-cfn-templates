@@ -7,12 +7,10 @@ To use AWS CLI tools, install [*awscli*](http://aws.amazon.com/jp/cli/).
 
 1. Follow the instruction, using [*pip*](https://pypi.python.org/pypi/awscli).
 
-2. Create configuration file including:
+2. Create a configuration file `$HOME/.aws/config` including:
     * aws_access_key_id
     * aws_secret_access_key
     * region
-
-3. Set environmetal variable **AWS_CONFIG_FILE** to point the configuration file.
 
 To see parameters and capabilities, run ``validate-template`` command.
 
@@ -37,13 +35,15 @@ Simple Tool
 ``awscfn-simple-tool.json`` is a template of simple command line tool including:
 
 * Python 2.7 (``virtualenv`` + ``pip``)
-* Python 3.3 (*PythonVersion* parameter)
+* Python 3.3 (*Python33Version* parameter)
+* Python 3.4 (*Python34Version* parameter)
 * JDK 1.7
 * GCC 4.7
 * Git
 * MySQL 5.5 Client
 * PostgreSQL 9.x Client
 * jq
+* [GDAL](http://www.gdal.org/)
 * nvm
 * rbenv (+ ruby-build)
 
