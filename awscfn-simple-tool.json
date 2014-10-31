@@ -84,7 +84,7 @@
     "ConsoleMachine": {
       "Type": "AWS::EC2::Instance",
       "Metadata" : {
-        "Comment1" : "Configure the bootstrap helpers to install GCC, Java, and Python",
+        "Comment1" : "Configure the bootstrap helpers to install GCC, Python, and database clients.",
 
         "AWS::CloudFormation::Init" : {
           "config" : {
@@ -108,7 +108,8 @@
                 "content" : { "Fn::Join" : ["", [
                   "[default]\n",
                   "aws_access_key_id = YOUR_ACCESS_KEY\n",
-                  "aws_secret_access_key = YOUR_SECRET_KEY\n"
+                  "aws_secret_access_key = YOUR_SECRET_KEY\n",
+                  "region = ", { "Ref" : "AWS::Region" }, "\n"
                   ]]},
                 "mode"  : "000644",
                 "owner" : "ec2-user",
@@ -172,7 +173,7 @@
           "#!/bin/bash -v\n",
           "yum update -y\n",
           "yum update -y aws-cfn-bootstrap\n",
-          "yum install --enablerepo epel gdal -y\n",
+          "yum install --enablerepo=epel -y --skip-broken gdal\n",
 
           "# Helper function\n",
           "function error_exit\n",
