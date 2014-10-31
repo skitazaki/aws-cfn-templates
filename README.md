@@ -35,13 +35,11 @@ Simple Tool
 ``awscfn-simple-tool.json`` is a template of simple command line tool including:
 
 * Python 2.7 (``virtualenv`` + ``pip``)
-* Python 3.3 (*Python33Version* parameter)
 * Python 3.4 (*Python34Version* parameter)
-* JDK 1.7
-* GCC 4.7
+* GCC 4.8
 * Git
 * MySQL 5.5 Client
-* PostgreSQL 9.x Client
+* PostgreSQL 9.3 Client
 * jq
 * [GDAL](http://www.gdal.org/)
 * nvm

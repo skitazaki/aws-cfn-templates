@@ -26,20 +26,10 @@
       "ConstraintDescription" : "must be a valid EC2 instance type."
     },
 
-    "Python33Version" : {
-      "Description" : "Python 3.3.x version",
-      "Type" : "String",
-      "Default" : "3.3.5",
-      "MinLength": "5",
-      "MaxLength": "5",
-      "AllowedPattern" : "3\\.3\\.[0-9]",
-      "ConstraintDescription" : "must be semantic versioning."
-    },
-
     "Python34Version" : {
       "Description" : "Python 3.4.x version",
       "Type" : "String",
-      "Default" : "3.4.0",
+      "Default" : "3.4.2",
       "MinLength": "5",
       "MaxLength": "5",
       "AllowedPattern" : "3\\.4\\.[0-9]",
@@ -100,12 +90,12 @@
           "config" : {
             "packages" : {
               "yum" : {
-                "gcc47"              : [],
-                "gcc47-c++"          : [],
+                "gcc48"              : [],
+                "gcc48-c++"          : [],
                 "bzip2-devel"        : [],
                 "openssl-devel"      : [],
                 "mysql55"            : [],
-                "postgresql9"        : [],
+                "postgresql93"       : [],
                 "git-all"            : [],
                 "jq"                 : [],
                 "python27"           : [],
@@ -131,14 +121,9 @@
                   "nvm install 0.10\n",
                   "nvm alias default 0.10\n",
                   "nvm use default\n",
-                  "rbenv install 2.0.0-p451\n",
-                  "rbenv install 2.1.1\n",
-                  "/opt/python/Python-", { "Ref" : "Python33Version" }, "/bin/pyvenv-3.3 --system-site-packages $HOME/.pyvenv/py33\n",
-                  "/opt/python/Python-", { "Ref" : "Python34Version" }, "/bin/pyvenv-3.4 --system-site-packages $HOME/.pyvenv/py34\n",
-                  "source $HOME/.pyvenv/py33/bin/activate\n",
-                  "python3 /usr/local/src/distribute_setup.py\n",
-                  "easy_install-3.3 pip\n",
-                  "pip-3.3 install httpie\n"
+                  "rbenv install 2.1.4\n",
+                  "virtualenv-2.7 $HOME/.pyvenv/py27\n",
+                  "/opt/python/Python-", { "Ref" : "Python34Version" }, "/bin/pyvenv-3.4 --system-site-packages $HOME/.pyvenv/py34\n"
                   ]]},
                 "mode"  : "000755",
                 "owner" : "ec2-user",
@@ -165,10 +150,6 @@
             },
 
             "sources" : {
-              "/usr/local/src/py33" : { "Fn::Join" : ["", [
-                "http://python.org/ftp/python/",
-                { "Ref" : "Python33Version" },
-                "/Python-", { "Ref" : "Python33Version" }, ".tgz"]]},
               "/usr/local/src/py34" : { "Fn::Join" : ["", [
                 "http://python.org/ftp/python/",
                 { "Ref" : "Python34Version" },
@@ -204,19 +185,9 @@
           "/opt/aws/bin/cfn-init -s ", { "Ref" : "AWS::StackId" }, " -r ConsoleMachine ",
           "    --region ", { "Ref" : "AWS::Region" }, " || error_exit 'Failed to run cfn-init'\n",
 
-          "curl http://python-distribute.org/distribute_setup.py > /usr/local/src/distribute_setup.py\n",
-          "python27 /usr/local/src/distribute_setup.py\n",
-          "easy_install-2.7 pip\n",
-          "pip-2.7 install virtualenv\n",
-
-          "PYTHON_VERSION=", { "Ref" : "Python33Version" }, "\n",
-          "PYTHON_SRCDIR=/usr/local/src/py33/Python-$PYTHON_VERSION\n",
-          "PYTHON_INSTALL=/opt/python/Python-$PYTHON_VERSION\n",
-
-          "cd $PYTHON_SRCDIR\n",
-          "./configure --prefix $PYTHON_INSTALL\n",
-          "make && make altinstall\n",
-          "cd -\n",
+          "curl https://bootstrap.pypa.io/get-pip.py > /usr/local/src/get-pip.py\n",
+          "python27 /usr/local/src/get-pip.py\n",
+          "pip2.7 install virtualenv\n",
 
           "PYTHON_VERSION=", { "Ref" : "Python34Version" }, "\n",
           "PYTHON_SRCDIR=/usr/local/src/py34/Python-$PYTHON_VERSION\n",
