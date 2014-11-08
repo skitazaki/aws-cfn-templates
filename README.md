@@ -27,7 +27,9 @@ To show the list of stacks, use ``describe-stacks`` command.
 Check "I acknowledge that this this template may create IAM resources" on when creating a stack.
 Or "CAPABILITY_IAM" on the command line option if the template requires IAM Role.
 
-To confirm Amazon Linux AMI ID, visit [Amazon Linux AMI](http://aws.amazon.com/jp/amazon-linux-ami/) page.
+To confirm Amazon Linux AMI ID, visit [Amazon Linux AMI](http://aws.amazon.com/jp/amazon-linux-ami/) page
+and [Amazon Linux AMI instance type matrix](https://aws.amazon.com/jp/amazon-linux-ami/instance-type-matrix/) page.
+
 
 Simple Tool
 ------------
@@ -47,10 +49,14 @@ Simple Tool
 
 Usage:
 
-    $ aws cloudformation create-stack \
-        --stack-name simple-tool \
-        --template-body file://`pwd`/awscfn-simple-tool.json \
-        --parameters ParameterKey=KeyName,ParameterValue=${EC2_KEYNAME}
+```bash
+$ aws cloudformation create-stack \
+    --stack-name simple-tool \
+    --template-body file://`pwd`/awscfn-simple-tool.json \
+    --parameters \
+        ParameterKey=KeyName,ParameterValue=${EC2_KEYNAME} \
+        ParameterKey=InstanceType,ParameterValue=t1.micro
+```
 
 Solr
 -----
