@@ -28,16 +28,6 @@
       "ConstraintDescription" : "must be a valid EC2 instance type."
     },
 
-    "Python34Version" : {
-      "Description" : "Python 3.4.x version",
-      "Type" : "String",
-      "Default" : "3.4.2",
-      "MinLength": "5",
-      "MaxLength": "5",
-      "AllowedPattern" : "3\\.4\\.[0-9]",
-      "ConstraintDescription" : "must be semantic versioning."
-    },
-
     "SSHLocation" : {
       "Description" : " The IP address range that can be used to SSH to the EC2 instances",
       "Type": "String",
@@ -102,18 +92,11 @@
           "config" : {
             "packages" : {
               "yum" : {
-                "gcc48"              : [],
-                "gcc48-c++"          : [],
-                "bzip2-devel"        : [],
-                "openssl-devel"      : [],
-                "mysql55"            : [],
-                "postgresql93"       : [],
                 "git-all"            : [],
                 "jq"                 : [],
                 "tmux"               : [],
                 "zsh"                : [],
                 "python27"           : [],
-                "python27-devel"     : [],
                 "docker"             : []
               }
             },
@@ -142,12 +125,16 @@
               "/home/ec2-user/build.sh": {
                 "content" : { "Fn::Join" : ["", [
                   "#!/bin/sh\n",
-                  "source /etc/profile.d/nvm.sh\n",
-                  "nvm install 0.10\n",
-                  "nvm alias default 0.10\n",
-                  "nvm use default\n",
                   "virtualenv-2.7 $HOME/.pyvenv/py27\n",
-                  "/opt/python/Python-", { "Ref" : "Python34Version" }, "/bin/pyvenv-3.4 --system-site-packages $HOME/.pyvenv/py34\n",
+
+                  "[ -d ~/bin ] || mkdir ~/bin\n",
+                  "curl -o ~/bin/q -L https://cdn.rawgit.com/harelba/q/1.5.0/bin/q\n",
+                  "chmod +x ~/bin/q\n",
+                  "wget https://github.com/peco/peco/releases/download/v0.2.12/peco_linux_amd64.tar.gz\n",
+                  "tar xf peco_linux_amd64.tar.gz && rm peco_linux_amd64.tar.gz\n",
+                  "cp peco_linux_amd64/peco ~/bin/ && rm -fr peco_linux_amd64\n",
+                  "chmod +x ~/bin/peco\n",
+
                   "# sudo docker pull ubuntu:14.04\n",
                   "# sudo docker pull centos:centos6\n",
                   "# sudo docker pull centos:centos7\n",
@@ -156,45 +143,21 @@
                   "# sudo docker pull python:3.4-onbuild\n",
                   "sudo docker pull node:0.10\n",
                   "# sudo docker pull node:0.10-onbuild\n",
+                  "sudo docker pull golang:1.4\n",
                   "sudo docker pull postgres:9.3\n",
-                  "sudo docker pull mysql:5.5\n",
+                  "sudo docker pull postgres:9.4\n",
+                  "# sudo docker pull mysql:5.5\n",
                   "# sudo docker pull nginx:1.7\n",
                   "# sudo docker pull progrium/logspout:latest\n",
                   "# sudo docker pull skitazaki/python34-ipython:latest\n",
-                  "sudo docker images\n",
-                  "# rbenv install 2.1.4\n"
+                  "sudo docker images\n"
                   ]]},
                 "mode"  : "000755",
                 "owner" : "ec2-user",
                 "group" : "ec2-user"
-              },
-              "/etc/profile.d/nvm.sh": {
-                "content" : { "Fn::Join" : ["", [
-                  "source /opt/venv/nvm/nvm-master/nvm.sh\n"
-                  ]]},
-                "mode"  : "000644",
-                "owner" : "root",
-                "group" : "root"
-              },
-              "/etc/profile.d/rbenv.sh": {
-                "content" : { "Fn::Join" : ["", [
-                  "export RBENV_ROOT=/opt/venv/rbenv\n",
-                  "export PATH=$RBENV_ROOT/bin:$PATH\n",
-                  "eval \"$(rbenv init -)\"\n"
-                  ]]},
-                "mode"  : "000644",
-                "owner" : "root",
-                "group" : "root"
               }
-            },
-
-            "sources" : {
-              "/usr/local/src/py34" : { "Fn::Join" : ["", [
-                "http://python.org/ftp/python/",
-                { "Ref" : "Python34Version" },
-                "/Python-", { "Ref" : "Python34Version" }, ".tgz"]]},
-              "/opt/venv/nvm" : "https://github.com/creationix/nvm/archive/master.zip"
             }
+
           }
         }
       },
@@ -211,7 +174,7 @@
           "#!/bin/bash -v\n",
           "yum update -y\n",
           "yum update -y aws-cfn-bootstrap\n",
-          "yum install --enablerepo=epel -y --skip-broken gdal\n",
+          "# yum install --enablerepo=epel -y --skip-broken gdal\n",
 
           "# Helper function\n",
           "function error_exit\n",
@@ -227,26 +190,13 @@
           "curl -L https://github.com/zimbatm/direnv/releases/download/v2.5.0/direnv.linux-amd64 > /usr/local/bin/direnv\n",
           "chmod +x /usr/local/bin/direnv\n",
 
-          "curl -L https://github.com/docker/fig/releases/download/1.0.1/fig-`uname -s`-`uname -m` > /usr/local/bin/fig\n",
-          "chmod +x /usr/local/bin/fig\n",
+          "curl -o /usr/local/bin/docker-compose -L https://github.com/docker/compose/releases/download/1.1.0/docker-compose-`uname -s`-`uname -m`\n",
+          "chmod +x /usr/local/bin/docker-compose\n",
 
           "curl https://bootstrap.pypa.io/get-pip.py > /usr/local/src/get-pip.py\n",
           "python27 /usr/local/src/get-pip.py\n",
           "pip2.7 install virtualenv\n",
           "pip2.7 install ansible\n",
-
-          "PYTHON_VERSION=", { "Ref" : "Python34Version" }, "\n",
-          "PYTHON_SRCDIR=/usr/local/src/py34/Python-$PYTHON_VERSION\n",
-          "PYTHON_INSTALL=/opt/python/Python-$PYTHON_VERSION\n",
-
-          "cd $PYTHON_SRCDIR\n",
-          "./configure --prefix $PYTHON_INSTALL\n",
-          "make && make altinstall\n",
-          "cd -\n",
-
-          "git clone https://github.com/sstephenson/rbenv.git /opt/venv/rbenv\n",
-          "git clone https://github.com/sstephenson/ruby-build.git /opt/venv/rbenv/plugins/ruby-build\n",
-          "chown -R ec2-user:ec2-user /opt/venv\n",
 
           "# All is well so signal success\n",
           "/opt/aws/bin/cfn-signal -e 0 -r \"Tool Stack setup complete\" '", { "Ref" : "WaitHandle" }, "'\n"
