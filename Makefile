@@ -6,10 +6,12 @@ all: help
 .PHONY: validate
 validate:  ## Validate templates file
 	aws cloudformation validate-template --template-body file://`pwd`/files/aws-cfn-vpc.yml
+	aws cloudformation validate-template --template-body file://`pwd`/files/aws-cfn-nat.yml
 
 .PHONY: upload
 upload:  ## Upload templates file
 	aws s3 cp files/aws-cfn-vpc.yml $(S3_STORAGE)/aws-cfn-vpc.yml
+	aws s3 cp files/aws-cfn-nat.yml $(S3_STORAGE)/aws-cfn-nat.yml
 
 .PHONY: help
 help:  ## Show this messages

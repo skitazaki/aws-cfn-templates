@@ -6,6 +6,7 @@ Collection of CloudFormation templates.
 | Name | Description |
 |------|-------------|
 | VPC  | VPC network similar to AWS Quick Start without NAT |
+| NAT  | NAT gateway in VPC network |
 
 Development
 -----------
@@ -36,28 +37,43 @@ export AWS_S3_PREFIX=aws-cloudformation
 
 ### Workflow
 
-To see parameters and capabilities, run ``validate-template`` command.
+Edit YAML template file and validate it by `validate-template` command in `aws`.
 
-    $ aws cloudformation validate-template --template-body file://`pwd`/awscfn-solr.json
+```bash
+$ aws cloudformation validate-template --template-body file://`pwd`/files/aws-cfn-vpc.yml
+```
 
-To delete stack, use ``delete-stack`` command.
-
-    $ aws cloudformation delete-stack --stack-name {STACK_NAME}
-
-To show the list of stacks, use ``describe-stacks`` command.
-
-    $ aws cloudformation describe-stacks
-
+Test stack creation and deletion using `create-stack` and `delete-stack` command.
 Check "I acknowledge that this this template may create IAM resources" on when creating a stack.
 Or "CAPABILITY_IAM" on the command line option if the template requires IAM Role.
 
-To confirm Amazon Linux AMI ID, visit [Amazon Linux AMI](http://aws.amazon.com/jp/amazon-linux-ami/) page
-and [Amazon Linux AMI instance type matrix](https://aws.amazon.com/jp/amazon-linux-ami/instance-type-matrix/) page.
+```bash
+$ aws cloudformation create-stack --stack-name ${STACK_NAME} \
+    --template-body file://`pwd`/files/aws-cfn-vpc.yml \
+    --cli-input-json file://`pwd`/utils/aws-cfn-vpc-input.json
+```
+
+Note that CLI parameters JSON cannot include external file.
+"TemplateURL" works if the file is uploaded.
+
+- [#1803 Ability to include external file contents in cli parameters json](https://github.com/aws/aws-cli/issues/1803)
+
+To delete the stack, just pass stack name.
+
+```bash
+$ aws cloudformation delete-stack --stack-name ${STACK_NAME}
+```
+
+To show the list of stacks, use ``describe-stacks`` command.
+
+```bash
+$ aws cloudformation describe-stacks
+```
 
 Templates
 ---------
 
-### VPC
+### VPC & NAT
 
 Creates VPC network similar to AWS Quick Start without NAT gateway.
 
@@ -67,18 +83,13 @@ $ aws cloudformation create-stack --stack-name TestVPC \
     --parameters 'ParameterKey=AvailabilityZones,ParameterValue="ap-northeast-1d,ap-northeast-1c"'
 ```
 
-To read arguments including parameters from file, `utils/aws-cfn-vpc-input.json` helps you.
+Creates NAT gateway in VPC network.
 
 ```bash
-$ aws cloudformation create-stack \
-    --template-body file://`pwd`/files/aws-cfn-vpc.yml \
-    --cli-input-json file://`pwd`/utils/aws-cfn-vpc-input.json
+$ aws cloudformation create-stack --stack-name TestNAT \
+    --template-body file://`pwd`/files/aws-cfn-nat.yml \
+    --parameters 'ParameterKey=VPCStackName,ParameterValue=TestVPC'
 ```
-
-Note that CLI parameters JSON cannot include external file.
-"TemplateURL" works if the file is uploaded.
-
-- [#1803 Ability to include external file contents in cli parameters json](https://github.com/aws/aws-cli/issues/1803)
 
 ### Simple Tool
 
@@ -100,6 +111,9 @@ $ aws cloudformation create-stack \
         ParameterKey=KeyName,ParameterValue=${EC2_KEYNAME} \
         ParameterKey=InstanceType,ParameterValue=t1.micro
 ```
+
+To confirm Amazon Linux AMI ID, visit [Amazon Linux AMI](http://aws.amazon.com/jp/amazon-linux-ami/) page
+and [Amazon Linux AMI instance type matrix](https://aws.amazon.com/jp/amazon-linux-ami/instance-type-matrix/) page.
 
 ### Solr
 
