@@ -3,14 +3,38 @@ AWS CloudFormation Templates
 
 Collection of CloudFormation templates.
 
-To use AWS CLI tools, install [*awscli*](http://aws.amazon.com/jp/cli/).
+| Name | Description |
+|------|-------------|
+| VPC  | VPC network similar to AWS Quick Start without NAT |
 
-1. Follow the instruction, using [*pip*](https://pypi.python.org/pypi/awscli).
+Development
+-----------
 
-2. Create a configuration file `$HOME/.aws/config` including:
-    * aws_access_key_id
-    * aws_secret_access_key
-    * region
+### Setup
+
+To use AWS CLI tools
+
+1. Install [*awscli*](http://aws.amazon.com/jp/cli/) from [*PyPI*](https://pypi.python.org/pypi/awscli).
+2. Create a credential file `$HOME/.aws/credentials`.
+3. Create a local environment file `.envrc` and load it.
+
+`.envrc` may include:
+
+- *AWS_PROFILE*: Profile name in credential file.
+- *AWS_DEFAULT_REGION*: AWS region name.
+- *AWS_S3_BUCKET*: S3 bucket name to upload template files.
+- *AWS_S3_PREFIX* Prefix string in S3 bucket to upload template files.
+
+Sample file looks like:
+
+```bash
+export AWS_PROFILE=dev
+export AWS_DEFAULT_REGION=ap-northeast-1
+export AWS_S3_BUCKET=toolboxbucket
+export AWS_S3_PREFIX=aws-cloudformation
+```
+
+### Workflow
 
 To see parameters and capabilities, run ``validate-template`` command.
 
@@ -30,9 +54,26 @@ Or "CAPABILITY_IAM" on the command line option if the template requires IAM Role
 To confirm Amazon Linux AMI ID, visit [Amazon Linux AMI](http://aws.amazon.com/jp/amazon-linux-ami/) page
 and [Amazon Linux AMI instance type matrix](https://aws.amazon.com/jp/amazon-linux-ami/instance-type-matrix/) page.
 
+Templates
+---------
 
-Simple Tool
-------------
+### VPC
+
+Creates VPC network similar to AWS Quick Start without NAT gateway.
+
+```bash
+$ aws cloudformation create-stack --stack-name TestVPC \
+    --template-body file://`pwd`/files/aws-cfn-vpc.yml \
+    --parameters 'ParameterKey=AvailabilityZones,ParameterValue="ap-northeast-1d,ap-northeast-1c"'
+```
+
+To read arguments including parameters from file, `utils/aws-cfn-vpc-input.json` helps you.
+
+```bash
+$ aws cloudformation create-stack --cli-input-json file://`pwd`/utils/aws-cfn-vpc-input.json
+```
+
+### Simple Tool
 
 ``awscfn-simple-tool.json`` is a template of simple command line tool including:
 
@@ -53,8 +94,7 @@ $ aws cloudformation create-stack \
         ParameterKey=InstanceType,ParameterValue=t1.micro
 ```
 
-Solr
------
+### Solr
 
 ``awscfn-solr.json`` is a template of Solr server.
 
