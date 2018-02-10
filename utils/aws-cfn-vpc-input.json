@@ -1,0 +1,9 @@
+{
+  "StackName": "TestVPC",
+  "Parameters": [
+    {
+      "ParameterKey": "AvailabilityZones",
+      "ParameterValue": "ap-northeast-1d,ap-northeast-1c"
+    }
+  ]
+}
