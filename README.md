@@ -70,8 +70,15 @@ $ aws cloudformation create-stack --stack-name TestVPC \
 To read arguments including parameters from file, `utils/aws-cfn-vpc-input.json` helps you.
 
 ```bash
-$ aws cloudformation create-stack --cli-input-json file://`pwd`/utils/aws-cfn-vpc-input.json
+$ aws cloudformation create-stack \
+    --template-body file://`pwd`/files/aws-cfn-vpc.yml \
+    --cli-input-json file://`pwd`/utils/aws-cfn-vpc-input.json
 ```
+
+Note that CLI parameters JSON cannot include external file.
+"TemplateURL" works if the file is uploaded.
+
+- [#1803 Ability to include external file contents in cli parameters json](https://github.com/aws/aws-cli/issues/1803)
 
 ### Simple Tool
 

@@ -1,6 +1,5 @@
 {
   "StackName": "TestVPC",
-  "TemplateBody": "file://`pwd`/files/aws-cfn-vpc.yml",
   "Parameters": [
     {
       "ParameterKey": "AvailabilityZones",
