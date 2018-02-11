@@ -137,17 +137,9 @@ Resources:
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
-          OnCreate: [Install, Configure]
-        Install:
-          packages:
-            yum:
-              docker: []
-              git: []
-              golang: []
-              jq: []
-              python36-pip: []
-              tmux: []
-              zsh: []
+          OnCreate: [setup, amazonlinux, config_amazonlinux]
+          OnCreateUbuntu: [setup, ubuntu, config_ubuntu]
+        setup:
           files:
             /opt/local/bin/default-awsconfig.sh:
               content: |
@@ -169,7 +161,26 @@ Resources:
               mode: "000644"
               owner: "root"
               group: "root"
-        Configure:
+        amazonlinux:
+          packages:
+            yum:
+              docker: []
+              git: []
+              golang: []
+              jq: []
+              python36-pip: []
+              tmux: []
+              zsh: []
+        ubuntu:
+          packages:
+            apt:
+              docker.io: []
+              golang-go: []
+              jq: []
+              python3-pip: []
+              tmux: []
+              zsh: []
+        config_amazonlinux:
           services:
             sysvinit:
               docker:
@@ -180,6 +191,13 @@ Resources:
               command: |
                 pip-3.6 install -U pip
                 pip-3.6 install pipenv ansible
+        config_ubuntu:
+          commands:
+            pip:
+              command: |
+                pip3 install -U pip
+                pip3 install pipenv ansible awscli
+                pip3 install -U cryptography
     Properties:
       KeyName: !Ref KeyPairName
       IamInstanceProfile: !If [UseInstanceProfile, !Ref WorkerProfile, !Ref "AWS::NoValue"]
@@ -200,17 +218,34 @@ Resources:
         Fn::Base64: !Sub
           - |
             #!/bin/bash -v
+            if [ "${WorkerAMIOS}" == "Amazon-Linux-HVM" ]; then
+              cfninit=/opt/aws/bin/cfn-init
+              cfnsignal=/opt/aws/bin/cfn-signal
+            else
+              cfninit=/usr/local/bin/cfn-init
+              cfnsignal=/usr/local/bin/cfn-signal
+            fi
             # Helper function
             function error_exit {
-              /opt/aws/bin/cfn-signal -e 1 -r "$1" "${WaitHandle}"
+              $cfnsignal -e 1 -r "$1" "${WaitHandle}"
               exit 1
             }
-            yum update -y
-            yum install -y aws-cfn-bootstrap
-            /opt/aws/bin/cfn-init --stack ${AWS::StackId} --resource Worker --configsets OnCreate --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
+            ${Packager} update -y
+            if [ "${WorkerAMIOS}" == "Amazon-Linux-HVM" ]; then
+              ${Packager} install -y aws-cfn-bootstrap
+              configsets=OnCreate
+            elif [ "${WorkerAMIOS}" == "Ubuntu-Server-16.04-LTS-HVM" ]; then
+              ${Packager} install -y python-pip
+              # Use Python 2.x for aws-cfn-bootstrap
+              pip install -U pip
+              pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+              configsets=OnCreateUbuntu
+            fi
+            $cfninit --stack ${AWS::StackId} --resource Worker --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
             /opt/local/bin/default-awsconfig.sh ${LocalUser}
-            /opt/aws/bin/cfn-signal -e 0 -r "Worker setup complete" "${WaitHandle}"
+            $cfnsignal -e 0 -r "Worker setup complete" "${WaitHandle}"
           - LocalUser: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, User]
+            Packager: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, Packager]
       Tags:
         - Key: Name
           Value: Worker
@@ -316,15 +351,19 @@ Mappings:
       Code: AMZNLINUXHVM
       RootDevice: /dev/xvda
       User: ec2-user
+      Packager: yum
     CentOS-7-HVM:
       Code: CENTOS7HVM
       RootDevice: /dev/sda1  # Not tested yet
       User: ec2-user  # Not tested yet
+      Packager: yum  # Not tested yet
     Ubuntu-Server-14.04-LTS-HVM:
       Code: US1404HVM
       RootDevice: /dev/sda1  # Not tested yet
       User: ubuntu  # Not tested yet
+      Packager: apt-get  # Not tested yet
     Ubuntu-Server-16.04-LTS-HVM:
       Code: US1604HVM
-      RootDevice: /dev/sda1  # Not tested yet
-      User: ubuntu  # Not tested yet
+      RootDevice: /dev/sda1
+      User: ubuntu
+      Packager: apt-get
