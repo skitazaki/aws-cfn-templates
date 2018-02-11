@@ -97,13 +97,12 @@ $ aws cloudformation create-stack --stack-name TestNAT \
 `aws-cfn-ec2-simple.json` is a template for simple command line work.
 Instance is created in public subnet in VPC network.
 
-EC2 instance will include:
+EC2 instance includes:
 
 * Python 3.6 (`pipenv` and `ansible`)
-* Git
-* Docker, Docker Compose
-* tmux, zsh, direnv
-* jq
+* Go
+* Git, tmux, zsh, jq
+* Docker
 
 Usage:
 
@@ -114,8 +113,10 @@ $ aws cloudformation create-stack \
     --parameters \
         ParameterKey=VPCStackName,ParameterValue=TestVPC \
         ParameterKey=KeyPairName,ParameterValue=${EC2_KEYNAME} \
-        ParameterKey=RemoteAccessCIDR,ParameterValue=${REMOTE_CIDR}
+        ParameterKey=RemoteAccessCIDR1,ParameterValue=${REMOTE_CIDR}
 ```
+
+This template accepts four remote CIDR addresses on parameters.
 
 To confirm Amazon Linux AMI ID, visit [Amazon Linux AMI](http://aws.amazon.com/jp/amazon-linux-ami/)
 and [Amazon Linux AMI instance type matrix](https://aws.amazon.com/jp/amazon-linux-ami/instance-type-matrix/) pages.
