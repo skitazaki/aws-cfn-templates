@@ -3,10 +3,11 @@ AWS CloudFormation Templates
 
 Collection of CloudFormation templates.
 
-| Name | Description |
-|------|-------------|
-| VPC  | VPC network similar to AWS Quick Start without NAT |
-| NAT  | NAT gateway in VPC network |
+| Name       | Description |
+|------------|-------------|
+| VPC        | VPC network similar to AWS Quick Start without NAT |
+| NAT        | NAT gateway in VPC network |
+| EC2 Simple | Single EC2 instance in public subnet, EIP attached |
 
 Development
 -----------
@@ -91,29 +92,34 @@ $ aws cloudformation create-stack --stack-name TestNAT \
     --parameters 'ParameterKey=VPCStackName,ParameterValue=TestVPC'
 ```
 
-### Simple Tool
+### Simple Instance
 
-``awscfn-simple-tool.json`` is a template of simple command line tool including:
+`aws-cfn-ec2-simple.json` is a template for simple command line work.
+Instance is created in public subnet in VPC network.
 
-* Python 2.7 (`pip`, `virtualenv`, and `ansible`)
-* Git
-* Docker, Docker Compose
-* tmux, zsh, direnv
-* jq, q, peco
+EC2 instance includes:
+
+* Python 3.6 (`pipenv` and `ansible`)
+* Go
+* Git, tmux, zsh, jq
+* Docker
 
 Usage:
 
 ```bash
 $ aws cloudformation create-stack \
-    --stack-name simple-tool \
-    --template-body file://`pwd`/awscfn-simple-tool.json \
+    --stack-name SimpleConsole \
+    --template-body file://`pwd`/files/aws-cfn-ec2-simple.json \
     --parameters \
-        ParameterKey=KeyName,ParameterValue=${EC2_KEYNAME} \
-        ParameterKey=InstanceType,ParameterValue=t1.micro
+        ParameterKey=VPCStackName,ParameterValue=TestVPC \
+        ParameterKey=KeyPairName,ParameterValue=${EC2_KEYNAME} \
+        ParameterKey=RemoteAccessCIDR1,ParameterValue=${REMOTE_CIDR}
 ```
 
-To confirm Amazon Linux AMI ID, visit [Amazon Linux AMI](http://aws.amazon.com/jp/amazon-linux-ami/) page
-and [Amazon Linux AMI instance type matrix](https://aws.amazon.com/jp/amazon-linux-ami/instance-type-matrix/) page.
+This template accepts four remote CIDR addresses on parameters.
+
+To confirm Amazon Linux AMI ID, visit [Amazon Linux AMI](http://aws.amazon.com/jp/amazon-linux-ami/)
+and [Amazon Linux AMI instance type matrix](https://aws.amazon.com/jp/amazon-linux-ami/instance-type-matrix/) pages.
 
 ### Solr
 
