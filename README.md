@@ -141,3 +141,11 @@ $ aws cloudformation create-stack \
         ParameterKey=KeyPairName,ParameterValue=${EC2_KEYNAME} \
         ParameterKey=RemoteAccessCIDR1,ParameterValue=${REMOTE_CIDR}
 ```
+
+Bootstrapping feature prepares two cores; *core1* and *techproducts*.
+*core1* is copied from *_default* config set, while *techproducts* is copied from *sample_techproducts_configs*
+Both cores require initialization requests from Core Admin in dashboard, whose URL is shown in outputs of the stack.
+
+For more information about Solr, see official tutorial.
+
+- [Solr Tutorial](https://lucene.apache.org/solr/guide/7_2/solr-tutorial.html)
