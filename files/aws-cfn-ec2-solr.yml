@@ -247,7 +247,7 @@ Resources:
       AWS::CloudFormation::Init:
         configSets:
           OnCreate: [setup, pkg_amazonlinux, cfg_amazonlinux, cfg, svc_amazonlinux]
-          OnCreateUbuntu: [setup, pkg_ubuntu]
+          OnCreateUbuntu: [setup, pkg_ubuntu, cfg, svc_ubuntu]
         setup:
           users:  # Since it depends on `useradd`, same name group is created by default
             solr:
@@ -291,6 +291,7 @@ Resources:
           packages:
             apt:
               jq: []
+              openjdk-8-jre-headless: []
         cfg_amazonlinux:
           commands:
             java:
@@ -302,23 +303,30 @@ Resources:
                   /opt/solr/solr-${SolrVersion}/bin/init.d/solr > /etc/init.d/solr
                 chmod 755 /etc/init.d/solr
                 cp /opt/solr/solr-${SolrVersion}/bin/solr.in.sh /etc/default/solr.in.sh
-                chsh -s /bin/sh solr
         cfg:
           commands:
             core:
               command: !Sub |
                 # Prepare two cores; core1 and techproducts
-                mkdir -p /opt/solr/solr-${SolrVersion}/server/solr/{core1,techproducts}/data
+                mkdir -p /opt/solr/solr-${SolrVersion}/server/solr/core1/data
+                mkdir -p /opt/solr/solr-${SolrVersion}/server/solr/techproducts/data
                 cp -r /opt/solr/solr-${SolrVersion}/server/solr/configsets/_default/conf \
                       /opt/solr/solr-${SolrVersion}/server/solr/core1/
                 cp -r /opt/solr/solr-${SolrVersion}/server/solr/configsets/sample_techproducts_configs/conf \
                       /opt/solr/solr-${SolrVersion}/server/solr/techproducts/
                 chown -R solr:solr /opt/solr
+                # Enable "solr" user to execute startup shell
+                chsh -s /bin/sh solr
         svc_amazonlinux:
           commands:
             service:
               command: |
                 service solr start
+        svc_ubuntu:
+          commands:
+            service:
+              command: !Sub |
+                sudo -u solr /opt/solr/solr-${SolrVersion}/bin/solr start
     Properties:
       KeyName: !Ref KeyPairName
       IamInstanceProfile: !If [UseInstanceProfile, !Ref SolrProfile, !Ref "AWS::NoValue"]
