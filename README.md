@@ -8,6 +8,7 @@ Collection of CloudFormation templates.
 | VPC        | VPC network similar to AWS Quick Start without NAT |
 | NAT        | NAT gateway in VPC network |
 | EC2 Simple | Single EC2 instance in public subnet, EIP attached |
+| EC2 Solr   | Solr search server behind ALB with bastion support |
 
 Development
 -----------
@@ -94,8 +95,8 @@ $ aws cloudformation create-stack --stack-name TestNAT \
 
 ### Simple Instance
 
-`aws-cfn-ec2-simple.json` is a template for simple command line work.
-Instance is created in public subnet in VPC network.
+`aws-cfn-ec2-simple.yml` is a template for simple command line work.
+An instance is created in public subnet in VPC network.
 
 EC2 instance includes:
 
@@ -109,7 +110,7 @@ Usage:
 ```bash
 $ aws cloudformation create-stack \
     --stack-name SimpleConsole \
-    --template-body file://`pwd`/files/aws-cfn-ec2-simple.json \
+    --template-body file://`pwd`/files/aws-cfn-ec2-simple.yml \
     --parameters \
         ParameterKey=VPCStackName,ParameterValue=TestVPC \
         ParameterKey=KeyPairName,ParameterValue=${EC2_KEYNAME} \
@@ -123,16 +124,28 @@ and [Amazon Linux AMI instance type matrix](https://aws.amazon.com/jp/amazon-lin
 
 ### Solr
 
-``awscfn-solr.json`` is a template of Solr server.
+`aws-cfn-ec2-solr.yml` is a template of Solr server with Application Load Balancer.
+This template also create a bastion host in public subnet for manual operation through SSH.
 
-* JDK 1.7
-* Tomcat 7
-* Solr 4.5 (*SolrVersion* parameter)
+* Open JDK 1.8
+* Solr 7.2.1 (*SolrVersion* parameter is used)
 
 Usage:
 
-    $ aws cloudformation create-stack \
-        --stack-name solr \
-        --template-body file://`pwd`/awscfn-solr.json \
-        --parameters ParameterKey=KeyName,ParameterValue=${EC2_KEYNAME} \
-        --capabilities CAPABILITY_IAM
+```bash
+$ aws cloudformation create-stack \
+    --stack-name Solr \
+    --template-body file://`pwd`/files/aws-cfn-ec2-solr.yml \
+    --parameters \
+        ParameterKey=VPCStackName,ParameterValue=TestVPC \
+        ParameterKey=KeyPairName,ParameterValue=${EC2_KEYNAME} \
+        ParameterKey=RemoteAccessCIDR1,ParameterValue=${REMOTE_CIDR}
+```
+
+Bootstrapping feature prepares two cores; *core1* and *techproducts*.
+*core1* is copied from *_default* config set, while *techproducts* is copied from *sample_techproducts_configs*
+Both cores require initialization requests from Core Admin in dashboard, whose URL is shown in outputs of the stack.
+
+For more information about Solr, see official tutorial.
+
+- [Solr Tutorial](https://lucene.apache.org/solr/guide/7_2/solr-tutorial.html)
