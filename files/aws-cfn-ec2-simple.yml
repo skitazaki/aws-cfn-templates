@@ -1,0 +1,369 @@
+---
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  This template creates single EC2 instance in public subnet in VPC network to
+  work on simple tasks. VPC stack has to exist before creation.
+Metadata: {}
+Parameters:
+  VPCStackName:
+    Description: VPC network stack name. It must export public subnet ID variable.
+    Type: String
+  WorkerAMIOS:
+    AllowedValues:
+      - Amazon-Linux-HVM
+      - CentOS-7-HVM
+      - Ubuntu-Server-14.04-LTS-HVM
+      - Ubuntu-Server-16.04-LTS-HVM
+    Default: Amazon-Linux-HVM
+    Description: The Linux distribution for the AMI to be used for the worker instances
+    Type: String
+  WorkerInstanceType:
+    AllowedValues:
+      - t2.nano
+      - t2.micro
+      - t2.small
+      - t2.medium
+      - t2.large
+      - m3.large
+      - m3.xlarge
+      - m3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+    Default: t2.micro
+    Description: Amazon EC2 instance type for the worker instances
+    Type: String
+  WorkerDiskSize:
+    Default: 8
+    Description: Disk size by GB
+    Type: Number
+    MinValue: 8
+    MaxValue: 100
+  WorkerProfile:
+    Default: ""
+    Description: Instance profile to attach the worker instances
+    Type: String
+  KeyPairName:
+    Description: >-
+      Enter a Public/private key pair. If you do not have one in this region,
+      please create it before continuing
+    Type: 'AWS::EC2::KeyPair::KeyName'
+  RemoteAccessCIDR1:
+    AllowedPattern: >-
+      ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
+    Description: Allowed CIDR block for external SSH access to the worker
+    Type: String
+  RemoteAccessCIDR2:
+    AllowedPattern: >-
+      ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
+    Description: Allowed CIDR block for external SSH access to the worker
+    Default: 0.0.0.0/0
+    Type: String
+  RemoteAccessCIDR3:
+    AllowedPattern: >-
+      ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
+    Description: Allowed CIDR block for external SSH access to the worker
+    Default: 0.0.0.0/0
+    Type: String
+  RemoteAccessCIDR4:
+    AllowedPattern: >-
+      ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
+    Description: Allowed CIDR block for external SSH access to the worker
+    Default: 0.0.0.0/0
+    Type: String
+Conditions:
+  UseInstanceProfile:
+    !Not [!Equals [!Ref WorkerProfile, ""]]
+  UseRemoteAccessCIDR2:
+    !Not [!Equals [!Ref RemoteAccessCIDR2, "0.0.0.0/0"]]
+  UseRemoteAccessCIDR3:
+    !Not [!Equals [!Ref RemoteAccessCIDR3, "0.0.0.0/0"]]
+  UseRemoteAccessCIDR4:
+    !Not [!Equals [!Ref RemoteAccessCIDR4, "0.0.0.0/0"]]
+Resources:
+  WaitHandle:
+    Type: AWS::CloudFormation::WaitConditionHandle
+  WaitCondition:
+    Type: AWS::CloudFormation::WaitCondition
+    DependsOn: Worker
+    Properties:
+      Handle: !Ref WaitHandle
+      Timeout: '1200'
+  RemoteAccessSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enables SSH Access to Worker Hosts
+      VpcId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-VPCID"
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: !Ref RemoteAccessCIDR1
+        - IpProtocol: icmp
+          FromPort: "-1"
+          ToPort: "-1"
+          CidrIp: !Ref RemoteAccessCIDR1
+        - !If
+            - UseRemoteAccessCIDR2
+            - IpProtocol: tcp
+              FromPort: "22"
+              ToPort: "22"
+              CidrIp: !Ref RemoteAccessCIDR2
+            - !Ref "AWS::NoValue"
+        - !If
+            - UseRemoteAccessCIDR3
+            - IpProtocol: tcp
+              FromPort: "22"
+              ToPort: "22"
+              CidrIp: !Ref RemoteAccessCIDR3
+            - !Ref "AWS::NoValue"
+        - !If
+            - UseRemoteAccessCIDR4
+            - IpProtocol: tcp
+              FromPort: "22"
+              ToPort: "22"
+              CidrIp: !Ref RemoteAccessCIDR4
+            - !Ref "AWS::NoValue"
+  Worker:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          OnCreate: [setup, amazonlinux, config_amazonlinux]
+          OnCreateUbuntu: [setup, ubuntu, config_ubuntu]
+        setup:
+          files:
+            /opt/local/bin/default-awsconfig.sh:
+              content: |
+                #!/bin/sh -v
+                local_user=$1
+                [ -d /home/${local_user}/.aws ] || mkdir /home/${local_user}/.aws
+                chown ${local_user} /home/${local_user}/.aws
+                chmod 700 /home/${local_user}/.aws
+                cp /opt/local/etc/default-awsconfig /home/${local_user}/.aws/config
+                chown ${local_user} /home/${local_user}/.aws/config
+                chmod 600 /home/${local_user}/.aws/config
+              mode: "000755"
+              owner: "root"
+              group: "root"
+            /opt/local/etc/default-awsconfig:
+              content: !Sub |
+                [default]
+                region = ${AWS::Region}
+              mode: "000644"
+              owner: "root"
+              group: "root"
+        amazonlinux:
+          packages:
+            yum:
+              docker: []
+              git: []
+              golang: []
+              jq: []
+              python36-pip: []
+              tmux: []
+              zsh: []
+        ubuntu:
+          packages:
+            apt:
+              docker.io: []
+              golang-go: []
+              jq: []
+              python3-pip: []
+              tmux: []
+              zsh: []
+        config_amazonlinux:
+          services:
+            sysvinit:
+              docker:
+                enabled: "true"
+                ensureRunning: "true"
+          commands:
+            pip:
+              command: |
+                pip-3.6 install -U pip
+                pip-3.6 install pipenv ansible
+        config_ubuntu:
+          commands:
+            pip:
+              command: |
+                pip3 install -U pip
+                pip3 install pipenv ansible awscli
+                pip3 install -U cryptography
+    Properties:
+      KeyName: !Ref KeyPairName
+      IamInstanceProfile: !If [UseInstanceProfile, !Ref WorkerProfile, !Ref "AWS::NoValue"]
+      ImageId: !FindInMap [AWSAMIRegionMap, !Ref "AWS::Region", !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, Code]]
+      SecurityGroupIds:
+        - !Ref RemoteAccessSecurityGroup
+      SubnetId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PublicSubnet1ID"
+      InstanceType: !Ref WorkerInstanceType
+      BlockDeviceMappings:
+        - DeviceName: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, RootDevice]
+          Ebs:
+            VolumeSize: !Ref WorkerDiskSize
+            VolumeType: gp2
+            DeleteOnTermination: true
+      UserData:
+        Fn::Base64: !Sub
+          - |
+            #!/bin/bash -v
+            if [ "${WorkerAMIOS}" == "Amazon-Linux-HVM" ]; then
+              cfninit=/opt/aws/bin/cfn-init
+              cfnsignal=/opt/aws/bin/cfn-signal
+            else
+              cfninit=/usr/local/bin/cfn-init
+              cfnsignal=/usr/local/bin/cfn-signal
+            fi
+            # Helper function
+            function error_exit {
+              $cfnsignal -e 1 -r "$1" "${WaitHandle}"
+              exit 1
+            }
+            ${Packager} update -y
+            if [ "${WorkerAMIOS}" == "Amazon-Linux-HVM" ]; then
+              ${Packager} install -y aws-cfn-bootstrap
+              configsets=OnCreate
+            elif [ "${WorkerAMIOS}" == "Ubuntu-Server-16.04-LTS-HVM" ]; then
+              ${Packager} install -y python-pip
+              # Use Python 2.x for aws-cfn-bootstrap
+              pip install -U pip
+              pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
+              configsets=OnCreateUbuntu
+            fi
+            $cfninit --stack ${AWS::StackId} --resource Worker --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
+            /opt/local/bin/default-awsconfig.sh ${LocalUser}
+            $cfnsignal -e 0 -r "Worker setup complete" "${WaitHandle}"
+          - LocalUser: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, User]
+            Packager: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, Packager]
+      Tags:
+        - Key: Name
+          Value: Worker
+  WorkerEIP:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+      InstanceId: !Ref Worker
+Outputs:
+  WorkerEIP:
+    Description: Public IP address of worker
+    Value: !Ref WorkerEIP
+  SSHAccess:
+    Description: SSH access target to the worker
+    Value: !Join ["@", [!FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, User], !Ref WorkerEIP]]
+Mappings:
+  # Derived from "quickstart-linux-bastion"
+  AWSAMIRegionMap:
+    AMI:
+      AMZNLINUXHVM: amzn-ami-hvm-2017.09.1.20180108-x86_64-gp2
+      CENTOS7HVM: >-
+        CentOS Linux 7 x86_64 HVM EBS
+        1708_11.01-b7ee8a69-ee97-4a49-9e68-afaee216db2e-ami-95096eef.4
+      US1404HVM: ubuntu/images/hvm-ssd/ubuntu-trusty-14.04-amd64-server-20180110
+      US1604HVM: ubuntu/images/hvm-ssd/ubuntu-xenial-16.04-amd64-server-20180109
+    ap-northeast-1:
+      AMZNLINUXHVM: ami-33c25b55
+      CENTOS7HVM: ami-4dd5522b
+      US1404HVM: ami-816cf4e7
+      US1604HVM: ami-d39a02b5
+    ap-northeast-2:
+      AMZNLINUXHVM: ami-d9b616b7
+      CENTOS7HVM: ami-53a1073d
+      US1404HVM: ami-7246e61c
+      US1604HVM: ami-67973709
+    ap-south-1:
+      AMZNLINUXHVM: ami-fedb8f91
+      CENTOS7HVM: ami-82a3eaed
+      US1404HVM: ami-2390c74c
+      US1604HVM: ami-5d055232
+    ap-southeast-1:
+      AMZNLINUXHVM: ami-889cecf4
+      CENTOS7HVM: ami-a6e88dda
+      US1404HVM: ami-1384f76f
+      US1604HVM: ami-325d2e4e
+    ap-southeast-2:
+      AMZNLINUXHVM: ami-ccab56ae
+      CENTOS7HVM: ami-5b778339
+      US1404HVM: ami-c831ccaa
+      US1604HVM: ami-37df2255
+    ca-central-1:
+      AMZNLINUXHVM: ami-61f97c05
+      CENTOS7HVM: ami-b111aad5
+      US1404HVM: ami-ccaf2aa8
+      US1604HVM: ami-f0870294
+    eu-central-1:
+      AMZNLINUXHVM: ami-0fc85a60
+      CENTOS7HVM: ami-1e038d71
+      US1404HVM: ami-a531a3ca
+      US1604HVM: ami-af79ebc0
+    eu-west-1:
+      AMZNLINUXHVM: ami-e487179d
+      CENTOS7HVM: ami-192a9460
+      US1404HVM: ami-34f2604d
+      US1604HVM: ami-4d46d534
+    eu-west-2:
+      AMZNLINUXHVM: ami-51809835
+      CENTOS7HVM: ami-c8d7c9ac
+      US1404HVM: ami-606b7004
+      US1604HVM: ami-d7aab2b3
+    eu-west-3:
+      AMZNLINUXHVM: ami-fe03b483
+      CENTOS7HVM: ami-0c60d771
+      US1404HVM: ami-03fd4b7e
+      US1604HVM: ami-5e0eb923
+    sa-east-1:
+      AMZNLINUXHVM: ami-1226647e
+      CENTOS7HVM: ami-6b5c1b07
+      US1404HVM: ami-926527fe
+      US1604HVM: ami-1157157d
+    us-east-1:
+      AMZNLINUXHVM: ami-cb9ec1b1
+      CENTOS7HVM: ami-02e98f78
+      US1404HVM: ami-33e4bc49
+      US1604HVM: ami-41e0b93b
+    us-east-2:
+      AMZNLINUXHVM: ami-caaf84af
+      CENTOS7HVM: ami-e0eac385
+      US1404HVM: ami-854b61e0
+      US1604HVM: ami-2581aa40
+    us-west-1:
+      AMZNLINUXHVM: ami-95eeeef5
+      CENTOS7HVM: ami-b1a59fd1
+      US1404HVM: ami-915f5cf1
+      US1604HVM: ami-79aeae19
+    us-west-2:
+      AMZNLINUXHVM: ami-32cf7b4a
+      CENTOS7HVM: ami-b63ae0ce
+      US1404HVM: ami-b88c3bc0
+      US1604HVM: ami-1ee65166
+  LinuxAMINameMap:
+    Amazon-Linux-HVM:
+      Code: AMZNLINUXHVM
+      RootDevice: /dev/xvda
+      User: ec2-user
+      Packager: yum
+    CentOS-7-HVM:
+      Code: CENTOS7HVM
+      RootDevice: /dev/sda1  # Not tested yet
+      User: ec2-user  # Not tested yet
+      Packager: yum  # Not tested yet
+    Ubuntu-Server-14.04-LTS-HVM:
+      Code: US1404HVM
+      RootDevice: /dev/sda1  # Not tested yet
+      User: ubuntu  # Not tested yet
+      Packager: apt-get  # Not tested yet
+    Ubuntu-Server-16.04-LTS-HVM:
+      Code: US1604HVM
+      RootDevice: /dev/sda1
+      User: ubuntu
+      Packager: apt-get

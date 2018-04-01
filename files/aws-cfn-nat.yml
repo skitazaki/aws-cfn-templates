@@ -1,0 +1,270 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  This template creates managed NAT gateways in a Multi-AZ, multi-subnet VPC
+  infrastructure. And, this template does not support NAT instance in gov cloud.
+  This template is based on "quickstart-aws-vpc" by AWS Quick Start Team.
+Metadata: {}
+Parameters:
+  CreateAdditionalPrivateSubnets:
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'false'
+    Description: >-
+      Set to true to create a network ACL protected subnet in each Availability
+      Zone. If false, the CIDR parameters for those subnets will be ignored. If
+      true, it also requires that the 'Create private subnets' parameter is also
+      true to have any effect.
+    Type: String
+  CreatePrivateSubnets:
+    AllowedValues:
+      - 'true'
+      - 'false'
+    Default: 'true'
+    Description: >-
+      Set to false to create only public subnets. If false, the CIDR parameters
+      for ALL private subnets will be ignored.
+    Type: String
+  NumberOfAZs:
+    AllowedValues:
+      - '1'
+      - '2'
+      - '3'
+      - '4'
+    Default: '2'
+    Description: >-
+      Number of Availability Zones to use NAT gateway in the VPC.
+    Type: String
+  VPCStackName:
+    Description: VPC network stack name. It must export outputs variables of route tables.
+    Type: String
+Mappings: {}
+Conditions:
+  2AZCondition: !Or
+    - !Equals
+      - !Ref NumberOfAZs
+      - '2'
+    - !Condition 3AZCondition
+    - !Condition 4AZCondition
+  3AZCondition: !Or
+    - !Equals
+      - !Ref NumberOfAZs
+      - '3'
+    - !Condition 4AZCondition
+  4AZCondition: !Equals
+    - !Ref NumberOfAZs
+    - '4'
+  AdditionalPrivateSubnetsCondition: !And
+    - !Equals
+      - !Ref CreatePrivateSubnets
+      - 'true'
+    - !Equals
+      - !Ref CreateAdditionalPrivateSubnets
+      - 'true'
+  AdditionalPrivateSubnets&2AZCondition: !And
+    - !Condition AdditionalPrivateSubnetsCondition
+    - !Condition 2AZCondition
+  AdditionalPrivateSubnets&3AZCondition: !And
+    - !Condition AdditionalPrivateSubnetsCondition
+    - !Condition 3AZCondition
+  AdditionalPrivateSubnets&4AZCondition: !And
+    - !Condition AdditionalPrivateSubnetsCondition
+    - !Condition 4AZCondition
+  NATGatewayCondition: !And
+    - !Condition PrivateSubnetsCondition
+    - !Condition PrivateSubnetsCondition
+  NATGateway&2AZCondition: !And
+    - !Condition NATGatewayCondition
+    - !Condition 2AZCondition
+  NATGateway&3AZCondition: !And
+    - !Condition NATGatewayCondition
+    - !Condition 3AZCondition
+  NATGateway&4AZCondition: !And
+    - !Condition NATGatewayCondition
+    - !Condition 4AZCondition
+  PrivateSubnetsCondition: !Equals
+    - !Ref CreatePrivateSubnets
+    - 'true'
+  PrivateSubnets&2AZCondition: !And
+    - !Condition PrivateSubnetsCondition
+    - !Condition 2AZCondition
+  PrivateSubnets&3AZCondition: !And
+    - !Condition PrivateSubnetsCondition
+    - !Condition 3AZCondition
+  PrivateSubnets&4AZCondition: !And
+    - !Condition PrivateSubnetsCondition
+    - !Condition 4AZCondition
+Resources:
+  PrivateSubnet1ARoute:
+    Condition: PrivateSubnetsCondition
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PrivateSubnet1ARouteTable"
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !If
+        - NATGatewayCondition
+        - !Ref NATGateway1
+        - !Ref 'AWS::NoValue'
+  PrivateSubnet2ARoute:
+    Condition: PrivateSubnets&2AZCondition
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PrivateSubnet2ARouteTable"
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !If
+        - NATGatewayCondition
+        - !Ref NATGateway2
+        - !Ref 'AWS::NoValue'
+  PrivateSubnet3ARoute:
+    Condition: PrivateSubnets&3AZCondition
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PrivateSubnet3ARouteTable"
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !If
+        - NATGatewayCondition
+        - !Ref NATGateway3
+        - !Ref 'AWS::NoValue'
+  PrivateSubnet4ARoute:
+    Condition: PrivateSubnets&4AZCondition
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PrivateSubnet4ARouteTable"
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !If
+        - NATGatewayCondition
+        - !Ref NATGateway4
+        - !Ref 'AWS::NoValue'
+  PrivateSubnet1BRoute:
+    Condition: AdditionalPrivateSubnetsCondition
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PrivateSubnet1BRouteTable"
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !If
+        - NATGatewayCondition
+        - !Ref NATGateway1
+        - !Ref 'AWS::NoValue'
+  PrivateSubnet2BRoute:
+    Condition: AdditionalPrivateSubnets&2AZCondition
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PrivateSubnet2BRouteTable"
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !If
+        - NATGatewayCondition
+        - !Ref NATGateway2
+        - !Ref 'AWS::NoValue'
+  PrivateSubnet3BRoute:
+    Condition: AdditionalPrivateSubnets&3AZCondition
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PrivateSubnet3BRouteTable"
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !If
+        - NATGatewayCondition
+        - !Ref NATGateway3
+        - !Ref 'AWS::NoValue'
+  PrivateSubnet4BRoute:
+    Condition: AdditionalPrivateSubnets&4AZCondition
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PrivateSubnet4BRouteTable"
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !If
+        - NATGatewayCondition
+        - !Ref NATGateway4
+        - !Ref 'AWS::NoValue'
+  NAT1EIP:
+    Condition: PrivateSubnetsCondition
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+  NAT2EIP:
+    Condition: PrivateSubnets&2AZCondition
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+  NAT3EIP:
+    Condition: PrivateSubnets&3AZCondition
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+  NAT4EIP:
+    Condition: PrivateSubnets&4AZCondition
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+  NATGateway1:
+    Condition: NATGatewayCondition
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt NAT1EIP.AllocationId
+      SubnetId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PublicSubnet1ID"
+  NATGateway2:
+    Condition: NATGateway&2AZCondition
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt NAT2EIP.AllocationId
+      SubnetId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PublicSubnet2ID"
+  NATGateway3:
+    Condition: NATGateway&3AZCondition
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt NAT3EIP.AllocationId
+      SubnetId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PublicSubnet3ID"
+  NATGateway4:
+    Condition: NATGateway&4AZCondition
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt NAT4EIP.AllocationId
+      SubnetId:
+        Fn::ImportValue:
+          !Sub "${VPCStackName}-PublicSubnet4ID"
+Outputs:
+  NAT1EIP:
+    Condition: PrivateSubnetsCondition
+    Description: NAT 1 IP address
+    Value: !Ref NAT1EIP
+    Export:
+      Name: !Sub '${AWS::StackName}-NAT1EIP'
+  NAT2EIP:
+    Condition: PrivateSubnets&2AZCondition
+    Description: NAT 2 IP address
+    Value: !Ref NAT2EIP
+    Export:
+      Name: !Sub '${AWS::StackName}-NAT2EIP'
+  NAT3EIP:
+    Condition: PrivateSubnets&3AZCondition
+    Description: NAT 3 IP address
+    Value: !Ref NAT3EIP
+    Export:
+      Name: !Sub '${AWS::StackName}-NAT3EIP'
+  NAT4EIP:
+    Condition: PrivateSubnets&4AZCondition
+    Description: NAT 4 IP address
+    Value: !Ref NAT4EIP
+    Export:
+      Name: !Sub '${AWS::StackName}-NAT4EIP'
