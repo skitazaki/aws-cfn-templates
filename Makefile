@@ -9,6 +9,7 @@ validate:  ## Validate templates file
 	aws cloudformation validate-template --template-body file://`pwd`/files/aws-cfn-nat.yml
 	aws cloudformation validate-template --template-body file://`pwd`/files/aws-cfn-ec2-simple.yml
 	aws cloudformation validate-template --template-body file://`pwd`/files/aws-cfn-ec2-solr.yml
+	aws cloudformation validate-template --template-body file://`pwd`/files/aws-cfn-ec2-jupyter.yml
 
 .PHONY: upload
 upload:  ## Upload templates file
@@ -16,6 +17,10 @@ upload:  ## Upload templates file
 	aws s3 cp files/aws-cfn-nat.yml $(S3_STORAGE)/aws-cfn-nat.yml
 	aws s3 cp files/aws-cfn-ec2-simple.yml $(S3_STORAGE)/aws-cfn-ec2-simple.yml
 	aws s3 cp files/aws-cfn-ec2-solr.yml $(S3_STORAGE)/aws-cfn-ec2-solr.yml
+
+.PHONY: upload-ec2-jupyter
+upload-ec2-jupyter:  ## Upload templates file of JupyterLab on EC2 stack
+	aws s3 cp files/aws-cfn-ec2-jupyter.yml $(S3_STORAGE)/aws-cfn-ec2-jupyter.yml
 
 .PHONY: help
 help:  ## Show this messages
