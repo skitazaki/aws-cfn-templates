@@ -3,12 +3,13 @@ AWS CloudFormation Templates
 
 Collection of CloudFormation templates.
 
-| Name       | Description |
-|------------|-------------|
-| VPC        | VPC network similar to AWS Quick Start without NAT |
-| NAT        | NAT gateway in VPC network |
-| EC2 Simple | Single EC2 instance in public subnet, EIP attached |
-| EC2 Solr   | Solr search server behind ALB with bastion support |
+| Name        | Description |
+|-------------|-------------|
+| VPC         | VPC network similar to AWS Quick Start without NAT |
+| NAT         | NAT gateway in VPC network |
+| EC2 Simple  | Single EC2 instance in public subnet, EIP attached |
+| EC2 Solr    | Solr search server behind ALB with bastion support |
+| EC2 Jupyter | Jupyter Lab server |
 
 Development
 -----------
@@ -149,3 +150,31 @@ Both cores require initialization requests from Core Admin in dashboard, whose U
 For more information about Solr, see official tutorial.
 
 - [Solr Tutorial](https://lucene.apache.org/solr/guide/7_2/solr-tutorial.html)
+
+### Jupyter Lab
+
+`aws-cfn-ec2-jupyter.yml` is a template of Jupyter Lab server.
+Since this template depends on VPC stack, you have to specify *VPCStackName*.
+It also requires *RemoteAccessCIDR1* and *WebAccessCIDR1* parameters because a server host in this stack accepts ssh and web access on port number 22 and 8888 respectively.
+*KeyPairName* is used for ssh connection, and *WorkerProfile* is attached on EC2 instance.
+The instance profile expects CloudWatch permissions of "logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents", and "logs:DescribeLogStreams" to deliver server log file.
+
+The server includes Python libraries defined by `Pipfile`. It will take 5-10 minutes to install them.
+
+- jupyterlab
+- numpy
+- scipy
+- matplotlib
+- pandas
+- statsmodels
+- seaborn
+- bokeh
+- tensorflow
+- pyyaml
+- boto3
+
+Jupyter server requires authentication token or password to log-in.
+Once stack is created, you can see the token in log event on CloudWatch console.
+The authentication token is shown at start up, and server log is delivered to CloudWatch Logs by *awslogs*.
+You can specify log group by *CloudWatchLogsGroupDefault* template parameter, while default log group is `/var/log/jupyterlab.log`.
+And, log stream name is instance ID.
