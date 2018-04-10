@@ -387,8 +387,7 @@ Resources:
             fi
             cfn-init --stack ${AWS::StackId} --resource Worker --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
             cfn-signal -e 0 -r "Worker setup complete" "${WaitHandle}"
-          - AdminUser: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, User]
-            Packager: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, Packager]
+          - Packager: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, Packager]
       Tags:
         - Key: Name
           Value: JupyterLab
