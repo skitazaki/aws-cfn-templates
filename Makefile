@@ -15,11 +15,14 @@ validate:  ## Validate template files
 upload:  ## Upload template files
 	aws s3 cp files/aws-cfn-vpc.yml $(S3_STORAGE)/aws-cfn-vpc.yml
 	aws s3 cp files/aws-cfn-nat.yml $(S3_STORAGE)/aws-cfn-nat.yml
-	aws s3 cp files/aws-cfn-ec2-solr.yml $(S3_STORAGE)/aws-cfn-ec2-solr.yml
 
 .PHONY: upload-simple
 upload-simple:  ## Upload template file of single instance on EC2 stack
 	aws s3 cp files/aws-cfn-ec2-simple.yml $(S3_STORAGE)/aws-cfn-ec2-simple.yml
+
+.PHONY: upload-solr
+upload-solr:  ## Upload template file of Solr server on EC2 stack
+	aws s3 cp files/aws-cfn-ec2-solr.yml $(S3_STORAGE)/aws-cfn-ec2-solr.yml
 
 .PHONY: upload-jupyter
 upload-jupyter:  ## Upload template file of JupyterLab on EC2 stack
