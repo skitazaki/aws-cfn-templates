@@ -129,7 +129,7 @@ and [Amazon Linux AMI instance type matrix](https://aws.amazon.com/jp/amazon-lin
 This template also create a bastion host in public subnet for manual operation through SSH.
 
 * Open JDK 1.8
-* Solr 7.2.1 (*SolrVersion* parameter is used)
+* Solr 7.3.0 (*SolrVersion* parameter is used)
 
 Usage:
 
@@ -140,16 +140,17 @@ $ aws cloudformation create-stack \
     --parameters \
         ParameterKey=VPCStackName,ParameterValue=TestVPC \
         ParameterKey=KeyPairName,ParameterValue=${EC2_KEYNAME} \
-        ParameterKey=RemoteAccessCIDR1,ParameterValue=${REMOTE_CIDR}
+        ParameterKey=RemoteAccessCIDR1,ParameterValue=${SSH_ACCESS_CIDR} \
+        ParameterKey=WebAccessCIDR1,ParameterValue=${WEB_ACCESS_CIDR}
 ```
 
 Bootstrapping feature prepares two cores; *core1* and *techproducts*.
-*core1* is copied from *_default* config set, while *techproducts* is copied from *sample_techproducts_configs*
+*core1* is copied from *_default* config set, while *techproducts* is copied from *sample_techproducts_configs*.
 Both cores require initialization requests from Core Admin in dashboard, whose URL is shown in outputs of the stack.
 
 For more information about Solr, see official tutorial.
 
-- [Solr Tutorial](https://lucene.apache.org/solr/guide/7_2/solr-tutorial.html)
+- [Solr Tutorial](https://lucene.apache.org/solr/guide/7_3/solr-tutorial.html)
 
 ### Jupyter Lab
 
