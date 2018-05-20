@@ -4,7 +4,31 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   This template creates single EC2 instance in public subnet in VPC network to
   work on simple tasks. VPC stack has to exist before creation.
-Metadata: {}
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Notebook Instance Configuration
+        Parameters:
+          - KeyPairName
+          - NotebookInstanceType
+          - NotebookDiskSize
+          - NotebookProfile
+          - CloudWatchLogsGroup
+          - LinuxAMIOS
+      - Label:
+          default: Network Configuration
+        Parameters:
+          - VPCStackName
+          - RemoteAccessCIDR1
+          - WebAccessCIDR1
+          - VPCSubnetID
+          - RemoteAccessCIDR2
+          - RemoteAccessCIDR3
+          - RemoteAccessCIDR4
+          - WebAccessCIDR2
+          - WebAccessCIDR3
+          - WebAccessCIDR4
 Parameters:
   VPCStackName:
     Description: VPC network stack name. It must export "VPCID" and subnet ID specified by VPCSubnetID parameter.
@@ -13,13 +37,13 @@ Parameters:
     Description: Exported variable name of Subnet ID in VPC stack.
     Default: PublicSubnet1ID
     Type: String
-  WorkerAMIOS:
+  LinuxAMIOS:
     AllowedValues:
       - Amazon-Linux-HVM
     Default: Amazon-Linux-HVM
-    Description: The Linux distribution for the AMI to be used for the worker instances
+    Description: The Linux distribution for the AMI to be used for the notebook instance.
     Type: String
-  WorkerInstanceType:
+  NotebookInstanceType:
     AllowedValues:
       - t2.nano
       - t2.micro
@@ -34,17 +58,17 @@ Parameters:
       - m4.2xlarge
       - m4.4xlarge
     Default: t2.micro
-    Description: Amazon EC2 instance type for the worker instances
+    Description: Amazon EC2 instance type for the notebook instance.
     Type: String
-  WorkerDiskSize:
+  NotebookDiskSize:
     Default: 8
     Description: Disk size by GB
     Type: Number
     MinValue: 8
     MaxValue: 100
-  WorkerProfile:
+  NotebookProfile:
     Default: ""
-    Description: Instance profile to attach the worker instances. Its role have to be allowed to put CloudWatch Logs.
+    Description: Instance profile to attach the notebook instance. Its role have to be allowed to put CloudWatch Logs.
     Type: String
   KeyPairName:
     Description: >-
@@ -111,7 +135,7 @@ Parameters:
     Type: String
 Conditions:
   UseInstanceProfile:
-    !Not [!Equals [!Ref WorkerProfile, ""]]
+    !Not [!Equals [!Ref NotebookProfile, ""]]
   UseRemoteAccessCIDR2:
     !Not [!Equals [!Ref RemoteAccessCIDR2, "0.0.0.0/0"]]
   UseRemoteAccessCIDR3:
@@ -129,14 +153,14 @@ Resources:
     Type: AWS::CloudFormation::WaitConditionHandle
   WaitCondition:
     Type: AWS::CloudFormation::WaitCondition
-    DependsOn: Worker
+    DependsOn: Notebook
     Properties:
       Handle: !Ref WaitHandle
       Timeout: '1200'
   RemoteAccessSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Enables SSH Access to Worker Hosts
+      GroupDescription: Enables SSH Access to Notebook Hosts
       VpcId:
         Fn::ImportValue:
           !Sub "${VPCStackName}-VPCID"
@@ -213,12 +237,12 @@ Resources:
           Value: WebAccessToJupyterLab
         - Key: Network
           Value: Public
-  Worker:
+  Notebook:
     Type: AWS::EC2::Instance
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
-          OnCreate: [account, setup, pkg_amazonlinux, cfg, cfg_amazonlinux, svc_amazonlinux, svc]
+          OnCreate: [account, setup, pkg_amazonlinux, cfg, cfg_amazonlinux, svc, svc_amazonlinux]
         account:
           users:
             jupyter:
@@ -228,6 +252,8 @@ Resources:
             /opt/local/bin/default-awsconfig.sh:
               content: |
                 #!/bin/sh -v
+                whoami
+                echo home directory is "$HOME"
                 [ -d ~/.aws ] || mkdir ~/.aws
                 chmod 700 ~/.aws
                 cp /opt/local/etc/default-awsconfig ~/.aws/config
@@ -251,15 +277,16 @@ Resources:
                 [packages]
                 jupyterlab = "*"
                 numpy = "*"
-                scipy = "*"
-                matplotlib = "*"
                 pandas = "*"
+                scipy = "*"
+                scikit-learn = "*"
                 statsmodels = "*"
+                matplotlib = "*"
                 seaborn = "*"
-                bokeh = "*"
+                # bokeh = "*"
                 tensorflow = "*"
                 pyyaml = "*"
-                boto3 = "*"
+                requests = "*"
               mode: "000644"
               owner: "jupyter"
               group: "jupyter"
@@ -274,18 +301,58 @@ Resources:
               group: "jupyter"
             /opt/jupyter/bin/jupyterlab.sh:
               content: |
-                #!/bin/sh -v
+                #!/bin/sh
                 export PATH=$PATH:/usr/local/bin
+
                 jupyter_dir=/opt/jupyter/server
                 notebook_dir=/opt/jupyter/notebook
-                logfile=$1
+                logfile=${1-/var/log/jupyterlab.log}
                 cd $jupyter_dir
-                pipenv install
-                echo "To generate password: pipenv run jupyter notebook password"
-                nohup pipenv run jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --notebook-dir=$notebook_dir > $logfile 2>&1 &
+                # echo "To generate password: pipenv run jupyter notebook password"
+                pipenv run jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --notebook-dir=$notebook_dir >> $logfile 2>&1
               mode: "000755"
               owner: "jupyter"
               group: "jupyter"
+            /etc/init.d/jupyterlab:
+              content: |
+                #!/bin/sh
+                # chkconfig: 2345 99 10
+                # description: Jupyter Lab server
+
+                NICELEVEL=+4
+
+                # Source function library.
+                . /etc/rc.d/init.d/functions
+
+                # Python 3 Support — Click Documentation (5.0) - http://click.pocoo.org/5/python3/
+                export LC_ALL=en_US.utf-8
+                export LANG=en_US.utf-8
+
+                prog=jupyter
+                exec="/opt/jupyter/bin/jupyterlab.sh"
+                pidfile=/var/run/jupyterlab.pid
+
+                case "$1" in
+                  start)
+                    [ -x $exec ] || exit 5
+                    nohup sudo -u jupyter $exec >/dev/null 2>&1 &
+                    retval=$?
+                    sleep 5
+                    logger jupyterlab retval is $retval
+                    [ $retval -ne 0 ] && echo_failure
+                    exit 0
+                    ;;
+                  stop)
+                    echo "stop is not implemented."
+                    exit 1
+                    ;;
+                  *)
+                    echo "Usage: $0 {start|stop}"
+                    exit 2
+                    ;;
+                esac
+                exit $?
+              mode: "000755"
         pkg_amazonlinux:
           packages:
             yum:
@@ -330,117 +397,127 @@ Resources:
                 pip-3.6 install pipenv
         svc:
           commands:
-            jupyterlab:
+            jupyter:
               command: |
                 chown -R jupyter:jupyter /opt/jupyter
-                sudo -u jupyter /opt/jupyter/bin/jupyterlab.sh /var/log/jupyterlab.log
+                sudo -u jupyter /opt/local/bin/default-awsconfig.sh
+                cd /opt/jupyter/server && sudo -u jupyter /usr/local/bin/pipenv install
+                [ -f /opt/jupyter/server/Pipfile.lock ] || exit 1
         svc_amazonlinux:
           services:
             sysvinit:
               awslogs:
                 enabled: "true"
                 ensureRunning: "true"
+              jupyterlab:
+                enabled: "true"
+                ensureRunning: "true"
     Properties:
       KeyName: !Ref KeyPairName
-      IamInstanceProfile: !If [UseInstanceProfile, !Ref WorkerProfile, !Ref "AWS::NoValue"]
-      ImageId: !FindInMap [AWSAMIRegionMap, !Ref "AWS::Region", !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, Code]]
+      IamInstanceProfile: !If [UseInstanceProfile, !Ref NotebookProfile, !Ref "AWS::NoValue"]
+      ImageId: !FindInMap [AWSAMIRegionMap, !Ref "AWS::Region", !FindInMap [LinuxAMINameMap, !Ref LinuxAMIOS, Code]]
       SecurityGroupIds:
         - !Ref RemoteAccessSecurityGroup
         - !Ref WebAccessSecurityGroup
       SubnetId:
         Fn::ImportValue:
           !Sub "${VPCStackName}-${VPCSubnetID}"
-      InstanceType: !Ref WorkerInstanceType
+      InstanceType: !Ref NotebookInstanceType
       BlockDeviceMappings:
-        - DeviceName: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, RootDevice]
+        - DeviceName: !FindInMap [LinuxAMINameMap, !Ref LinuxAMIOS, RootDevice]
           Ebs:
-            VolumeSize: !Ref WorkerDiskSize
+            VolumeSize: !Ref NotebookDiskSize
             VolumeType: gp2
             DeleteOnTermination: true
       UserData:
         Fn::Base64: !Sub
           - |
             #!/bin/bash -v
-            # Extend PATH variable for `cfn-init` and `cfn-signal`
-            if [ "${WorkerAMIOS}" == "Amazon-Linux-HVM" ]; then
-              export PATH=$PATH:/opt/aws/bin
-            else
-              export PATH=$PATH:/usr/local/bin
-            fi
+            ${Packager} update -y
             # Helper function
             function error_exit {
               cfn-signal -e 1 -r "$1" "${WaitHandle}"
               exit 1
             }
-            ${Packager} update -y
-            if [ "${WorkerAMIOS}" == "Amazon-Linux-HVM" ]; then
+            configsets=OnCreate
+            if [ "${LinuxAMIOS}" == "Amazon-Linux-HVM" ]; then
               ${Packager} install -y aws-cfn-bootstrap
-              configsets=OnCreate
-            elif [ "${WorkerAMIOS}" == "Ubuntu-Server-16.04-LTS-HVM" ]; then
+              # Extend PATH variable for `cfn-init` and `cfn-signal`
+              export PATH=$PATH:/opt/aws/bin
+            elif [ "${LinuxAMIOS}" == "Ubuntu-Server-16.04-LTS-HVM" ]; then
               ${Packager} install -y python-pip
               # Use Python 2.x for aws-cfn-bootstrap
               pip install -U pip
               pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
               configsets=OnCreateUbuntu
+              # Extend PATH variable for `cfn-init` and `cfn-signal`
+              export PATH=$PATH:/usr/local/bin
             else
-              error_exit 'unhandled OS type ${WorkerAMIOS}'
+              error_exit 'unhandled OS type ${LinuxAMIOS}'
             fi
-            cfn-init --stack ${AWS::StackId} --resource Worker --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
-            cfn-signal -e 0 -r "Worker setup complete" "${WaitHandle}"
-          - Packager: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, Packager]
+            cfn-init --stack ${AWS::StackId} --resource ${Resource} --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
+            cfn-signal -e 0 -r "Notebook setup complete" "${WaitHandle}"
+          - Packager: !FindInMap [LinuxAMINameMap, !Ref LinuxAMIOS, Packager]
+            Resource: Notebook
       Tags:
         - Key: Name
           Value: JupyterLab
-  WorkerEIP:
+  NotebookEIP:
     Type: AWS::EC2::EIP
     Properties:
       Domain: vpc
-      InstanceId: !Ref Worker
+      InstanceId: !Ref Notebook
 Outputs:
-  WorkerEIP:
-    Description: Public IP address of worker
-    Value: !Ref WorkerEIP
+  NotebookEIP:
+    Description: Public IP address of notebook
+    Value: !Ref NotebookEIP
   SSHAccess:
     Description: SSH access target
-    Value: !Join ["@", [!FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, User], !Ref WorkerEIP]]
+    Value: !Join ["@", [!FindInMap [LinuxAMINameMap, !Ref LinuxAMIOS, User], !Ref NotebookEIP]]
   WebAccess:
     Description: Web access URL
-    Value: !Sub 'http://${WorkerEIP}:8888/'
+    Value: !Sub 'http://${NotebookEIP}:8888/'
 Mappings:
   # Derived from "quickstart-linux-bastion"
   AWSAMIRegionMap:
     AMI:
-      AMZNLINUXHVM: amzn-ami-hvm-2017.09.1.20180108-x86_64-gp2
+      AMZNLINUXHVM: amzn-ami-hvm-2018.03.0.20180412-x86_64-gp2
     ap-northeast-1:
-      AMZNLINUXHVM: ami-33c25b55
+      AMZNLINUXHVM: ami-28ddc154
     ap-northeast-2:
-      AMZNLINUXHVM: ami-d9b616b7
+      AMZNLINUXHVM: ami-efaf0181
+    ap-northeast-3:
+      AMZNLINUXHVM: ami-68c1cf15
     ap-south-1:
-      AMZNLINUXHVM: ami-fedb8f91
+      AMZNLINUXHVM: ami-b46f48db
     ap-southeast-1:
-      AMZNLINUXHVM: ami-889cecf4
+      AMZNLINUXHVM: ami-64260718
     ap-southeast-2:
-      AMZNLINUXHVM: ami-ccab56ae
+      AMZNLINUXHVM: ami-60a26a02
     ca-central-1:
-      AMZNLINUXHVM: ami-61f97c05
+      AMZNLINUXHVM: ami-2f39bf4b
+    cn-north-1:
+      AMZNLINUXHVM: ami-3d3ee150
+    cn-northwest-1:
+      AMZNLINUXHVM: ami-0f9c886d
     eu-central-1:
-      AMZNLINUXHVM: ami-0fc85a60
+      AMZNLINUXHVM: ami-1b316af0
     eu-west-1:
-      AMZNLINUXHVM: ami-e487179d
+      AMZNLINUXHVM: ami-9cbe9be5
     eu-west-2:
-      AMZNLINUXHVM: ami-51809835
+      AMZNLINUXHVM: ami-c12dcda6
     eu-west-3:
-      AMZNLINUXHVM: ami-fe03b483
+      AMZNLINUXHVM: ami-cae150b7
     sa-east-1:
-      AMZNLINUXHVM: ami-1226647e
+      AMZNLINUXHVM: ami-f09dcc9c
     us-east-1:
-      AMZNLINUXHVM: ami-cb9ec1b1
+      AMZNLINUXHVM: ami-467ca739
     us-east-2:
-      AMZNLINUXHVM: ami-caaf84af
+      AMZNLINUXHVM: ami-976152f2
     us-west-1:
-      AMZNLINUXHVM: ami-95eeeef5
+      AMZNLINUXHVM: ami-46e1f226
     us-west-2:
-      AMZNLINUXHVM: ami-32cf7b4a
+      AMZNLINUXHVM: ami-6b8cef13
   LinuxAMINameMap:
     Amazon-Linux-HVM:
       Code: AMZNLINUXHVM

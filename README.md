@@ -162,17 +162,18 @@ The instance profile expects CloudWatch permissions of "logs:CreateLogGroup", "l
 
 The server includes Python libraries defined by `Pipfile`. It will take 5-10 minutes to install them.
 
-- jupyterlab
-- numpy
-- scipy
-- matplotlib
-- pandas
-- statsmodels
-- seaborn
-- bokeh
-- tensorflow
-- pyyaml
-- boto3
+- *jupyterlab*
+- *numpy*
+- *pandas*
+- *scipy*
+- *scikit-learn*
+- *statsmodels*
+- *matplotlib*
+- *seaborn*
+- (*bokeh* is removed because [The installation hangs at resolving jupyterlab_bokeh package · Issue #40 · bokeh/jupyterlab_bokeh](https://github.com/bokeh/jupyterlab_bokeh/issues/40))
+- *tensorflow*
+- *pyyaml*
+- *requests*
 
 Jupyter server requires authentication token or password to log-in.
 Once stack is created, you can see the token in log event on CloudWatch console.
