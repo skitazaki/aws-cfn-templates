@@ -170,7 +170,7 @@ The server includes Python libraries defined by `Pipfile`. It will take 5-10 min
 - *statsmodels*
 - *matplotlib*
 - *seaborn*
-- (*bokeh* is removed because [The installation hangs at resolving jupyterlab_bokeh package · Issue #40 · bokeh/jupyterlab_bokeh](https://github.com/bokeh/jupyterlab_bokeh/issues/40))
+- (*bokeh* is not included because *jupyterlab_bokeh* extension v0.5 is not downloadable.)
 - *tensorflow*
 - *pyyaml*
 - *requests*

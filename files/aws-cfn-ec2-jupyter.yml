@@ -3,7 +3,7 @@
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   This template creates single EC2 instance in public subnet in VPC network to
-  work on simple tasks. VPC stack has to exist before creation.
+  work on simple task on Jupyter Lab. VPC stack has to be created before.
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -296,6 +296,25 @@ Resources:
 
                 Files in this folder will not be saved permanently.
                 Please backup notebooks and data files on S3 bucket.
+
+                ## Snippet
+
+                Import Python modules.
+
+                ```python
+                import datetime
+                import math
+
+                import numpy as np
+                import pandas as pd
+
+                import matplotlib.pyplot as plt
+                import seaborn as sns
+
+                sns.set_style("whitegrid")
+
+                %matplotlib inline
+                ```
               mode: "000644"
               owner: "jupyter"
               group: "jupyter"
