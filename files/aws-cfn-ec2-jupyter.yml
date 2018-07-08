@@ -424,8 +424,9 @@ Resources:
               command: |
                 chown -R jupyter:jupyter /opt/jupyter
                 sudo -u jupyter /opt/local/bin/default-awsconfig.sh
-                cd /opt/jupyter/server && sudo -u jupyter /usr/local/bin/pipenv install
-                [ -f /opt/jupyter/server/Pipfile.lock ] || exit 1
+                # skip lock mechanism because of html5lib dependency resolution error
+                cd /opt/jupyter/server && sudo -u jupyter /usr/local/bin/pipenv install --skip-lock
+                # [ -f /opt/jupyter/server/Pipfile.lock ] || exit 1
         svc_amazonlinux:
           services:
             sysvinit:
@@ -478,8 +479,7 @@ Resources:
             else
               error_exit 'unhandled OS type ${LinuxAMIOS}'
             fi
-            # cfn-init --stack ${AWS::StackId} --resource ${Resource} --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
-            cfn-init --stack ${AWS::StackId} --resource ${Resource} --configsets $configsets --region ${AWS::Region}
+            cfn-init --stack ${AWS::StackId} --resource ${Resource} --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
             cfn-signal -e 0 -r "Notebook setup complete" "${WaitHandle}"
           - Packager: !FindInMap [LinuxAMINameMap, !Ref LinuxAMIOS, Packager]
             Resource: Notebook
