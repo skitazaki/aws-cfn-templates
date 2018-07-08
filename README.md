@@ -129,7 +129,7 @@ and [Amazon Linux AMI instance type matrix](https://aws.amazon.com/jp/amazon-lin
 This template also create a bastion host in public subnet for manual operation through SSH.
 
 * Open JDK 1.8
-* Solr 7.3.0 (*SolrVersion* parameter is used)
+* Solr 7.4.0 (*SolrVersion* parameter is used)
 
 Usage:
 
@@ -150,7 +150,7 @@ Both cores require initialization requests from Core Admin in dashboard, whose U
 
 For more information about Solr, see official tutorial.
 
-- [Solr Tutorial](https://lucene.apache.org/solr/guide/7_3/solr-tutorial.html)
+- [Solr Tutorial](https://lucene.apache.org/solr/guide/7_4/solr-tutorial.html)
 
 ### Jupyter Lab
 

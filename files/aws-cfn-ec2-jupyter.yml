@@ -57,6 +57,10 @@ Parameters:
       - m4.xlarge
       - m4.2xlarge
       - m4.4xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
     Default: t2.micro
     Description: Amazon EC2 instance type for the notebook instance.
     Type: String
@@ -474,7 +478,8 @@ Resources:
             else
               error_exit 'unhandled OS type ${LinuxAMIOS}'
             fi
-            cfn-init --stack ${AWS::StackId} --resource ${Resource} --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
+            # cfn-init --stack ${AWS::StackId} --resource ${Resource} --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
+            cfn-init --stack ${AWS::StackId} --resource ${Resource} --configsets $configsets --region ${AWS::Region}
             cfn-signal -e 0 -r "Notebook setup complete" "${WaitHandle}"
           - Packager: !FindInMap [LinuxAMINameMap, !Ref LinuxAMIOS, Packager]
             Resource: Notebook
