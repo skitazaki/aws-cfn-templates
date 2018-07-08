@@ -57,6 +57,10 @@ Parameters:
       - m4.xlarge
       - m4.2xlarge
       - m4.4xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
     Default: t2.micro
     Description: Amazon EC2 instance type for the notebook instance.
     Type: String
@@ -420,8 +424,9 @@ Resources:
               command: |
                 chown -R jupyter:jupyter /opt/jupyter
                 sudo -u jupyter /opt/local/bin/default-awsconfig.sh
-                cd /opt/jupyter/server && sudo -u jupyter /usr/local/bin/pipenv install
-                [ -f /opt/jupyter/server/Pipfile.lock ] || exit 1
+                # skip lock mechanism because of html5lib dependency resolution error
+                cd /opt/jupyter/server && sudo -u jupyter /usr/local/bin/pipenv install --skip-lock
+                # [ -f /opt/jupyter/server/Pipfile.lock ] || exit 1
         svc_amazonlinux:
           services:
             sysvinit:
