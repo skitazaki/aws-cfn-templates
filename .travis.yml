@@ -4,7 +4,7 @@ language: python
 python:
   - "3.6"
 install:
-  - pip install --upgrade --user awscli
+  - pip install --upgrade awscli
 script:
   - |
     for f in files/*.yml; do
