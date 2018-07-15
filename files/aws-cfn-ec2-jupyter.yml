@@ -160,7 +160,7 @@ Resources:
     DependsOn: Notebook
     Properties:
       Handle: !Ref WaitHandle
-      Timeout: '1200'
+      Timeout: '600'
   RemoteAccessSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -287,9 +287,10 @@ Resources:
                 statsmodels = "*"
                 matplotlib = "*"
                 seaborn = "*"
-                # bokeh = "*"
+                # bokeh = "*"  # don't work on Jupyter Lab
                 tensorflow = "*"
                 pyyaml = "*"
+                xlrd = "*"  # make pandas to read Excel files
                 requests = "*"
               mode: "000644"
               owner: "jupyter"
@@ -480,7 +481,8 @@ Resources:
               error_exit 'unhandled OS type ${LinuxAMIOS}'
             fi
             cfn-init --stack ${AWS::StackId} --resource ${Resource} --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
-            cfn-signal -e 0 -r "Notebook setup complete" "${WaitHandle}"
+            token=$(grep "token=" /var/log/jupyterlab.log | head -1 | awk -F= '{ print $2 }')
+            cfn-signal -e 0 -r "Notebook setup complete" -d $token "${WaitHandle}"
           - Packager: !FindInMap [LinuxAMINameMap, !Ref LinuxAMIOS, Packager]
             Resource: Notebook
       Tags:
@@ -501,6 +503,9 @@ Outputs:
   WebAccess:
     Description: Web access URL
     Value: !Sub 'http://${NotebookEIP}:8888/'
+  JupyterAccessToken:
+    Description: Jupyter access token
+    Value: !GetAtt WaitCondition.Data
 Mappings:
   # Derived from "quickstart-linux-bastion"
   AWSAMIRegionMap:

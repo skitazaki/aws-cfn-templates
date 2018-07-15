@@ -1,0 +1,13 @@
+---
+
+language: python
+python:
+  - "3.6"
+install:
+  - pip install --upgrade awscli
+script:
+  - |
+    for f in files/*.yml; do
+      echo "Validate template $( basename $f )"
+      aws cloudformation validate-template --template-body file://`pwd`/$f
+    done
