@@ -8,6 +8,6 @@ install:
 script:
   - |
     for f in files/*.yml; do
-      echo "Validate template $( basename f )"
+      echo "Validate template $( basename $f )"
       aws cloudformation validate-template --template-body file://`pwd`/$f
     done
