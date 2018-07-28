@@ -28,6 +28,10 @@ upload-solr:  ## Upload template file of Solr server on EC2 stack
 upload-jupyter:  ## Upload template file of JupyterLab on EC2 stack
 	aws s3 cp files/aws-cfn-ec2-jupyter.yml $(S3_STORAGE)/aws-cfn-ec2-jupyter.yml
 
+.PHONY: upload-cwlog-policy
+upload-cwlog-policy:  ## Upload template file of putting retention policy on CloudWatch Logs
+	aws s3 cp files/aws-cfn-cwlog-policy.yml $(S3_STORAGE)/aws-cfn-cwlog-policy.yml
+
 .PHONY: help
 help:  ## Show this messages
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'

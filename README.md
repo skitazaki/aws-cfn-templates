@@ -10,6 +10,7 @@ Collection of CloudFormation templates.
 | EC2 Simple  | Single EC2 instance in public subnet, EIP attached |
 | EC2 Solr    | Solr search server behind ALB with bastion support |
 | EC2 Jupyter | Jupyter Lab server |
+| Log Policy  | Lambda function to put retention policy on CloudWatch Logs |
 
 Development
 -----------
@@ -180,3 +181,10 @@ Once stack is created, you can see the token in log event on CloudWatch console.
 The authentication token is shown at start up, and server log is delivered to CloudWatch Logs by *awslogs*.
 You can specify log group by *CloudWatchLogsGroupDefault* template parameter, while default log group is `/var/log/jupyterlab.log`.
 And, log stream name is instance ID.
+
+### Log Policy
+
+`aws-cfn-cwlog-policy.yml` is a template of Lambda function to put retention policy on CloudWatch Logs,
+and also creates periodic invocation rule once a week.
+This template requires permission to create IAM Role for Lambda function.
+Prepare deployment role so that CloudFormation can deploy serverless stack, and pass role to it while stack creation.

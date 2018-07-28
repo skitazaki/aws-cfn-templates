@@ -1,0 +1,126 @@
+---
+
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  This template creates Lambda function to put retention policy on CloudWatch Logs.
+  The function is invoked by Events periodically once a week.
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: CloudWatch Logs retention policy
+        Parameters:
+          - LogGroupPrefix
+          - RetentionInDays
+Parameters:
+  LogGroupPrefix:
+    Description: Prefix string of log group names.
+    Default: /aws/lambda/
+    Type: String
+  RetentionInDays:
+    Description: Days to set retention policy.
+    Default: 7
+    Type: Number
+    AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653]
+Resources:
+  PutRetentionPolicyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DescribeAndPutPolicyOnLogGroup
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:DescribeLogGroups"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - "logs:PutRetentionPolicy"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupPrefix}*"
+  PutRetentionPolicy:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Put retention policy on CloudWatch Logs
+      Role: !GetAtt PutRetentionPolicyRole.Arn
+      Handler: index.handler
+      Runtime: python3.6
+      Timeout: 10
+      MemorySize: 128
+      Environment:
+        Variables:
+          LogGroupPrefix: !Ref LogGroupPrefix
+          RetentionInDays: !Ref RetentionInDays
+      Code:
+        ZipFile: |
+          import logging
+          import os
+          import boto3
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+          aws_logs = boto3.client('logs')
+
+          def put_retention_policy(groups, days):
+            cnt = 0
+            for g in groups:
+              if 'retentionInDays' not in g:
+                aws_logs.put_retention_policy(
+                  logGroupName=g['logGroupName'],
+                  retentionInDays=days
+                )
+                logger.info('put retention policy on %s in %d days', g['logGroupName'], days)
+                cnt += 1
+            return cnt
+
+          def handler(event, context):
+            prefix = os.environ['LogGroupPrefix']
+            days = int(os.environ['RetentionInDays'])
+            response = aws_logs.describe_log_groups(
+              logGroupNamePrefix=prefix,
+            )
+            logger.info('prefix "%s" has %d log groups', prefix, len(response['logGroups']))
+            cnt = put_retention_policy(response['logGroups'], days)
+            while 'nextToken' in response:
+              logger.info('response has nextToken')
+              response = aws_logs.describe_log_groups(
+                logGroupNamePrefix=prefix,
+                nextToken=response['nextToken']
+              )
+              logger.info('prefix "%s" has %d log groups with %s', prefix, len(response['logGroups']), response['nextToken'])
+              cnt += put_retention_policy(response['logGroups'], days)
+            if cnt == 0:
+              logger.info('no log groups are in target to put retention policy')
+            elif cnt == 1:
+              logger.info('%d log group is affected', cnt)
+            elif cnt > 1:
+              logger.info('%d log groups are affected', cnt)
+            else:
+              logger.fatal('counter is broken, rescue me')
+            return {"count": cnt}
+  ScheduledRule:
+    Type: AWS::Events::Rule
+    Properties:
+      Description: Scheduled rule to invoke Lambda
+      ScheduleExpression: "rate(7 days)"
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt PutRetentionPolicy.Arn
+          Id: TargetFunctionV1
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Principal: "events.amazonaws.com"
+      Action: "lambda:InvokeFunction"
+      SourceArn: !GetAtt ScheduledRule.Arn
+      FunctionName: !Ref PutRetentionPolicy
