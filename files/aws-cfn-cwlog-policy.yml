@@ -2,8 +2,10 @@
 
 AWSTemplateFormatVersion: 2010-09-09
 Description: >-
-  This template creates Lambda function to put retention policy on CloudWatch Logs.
-  The function is invoked by Events periodically once a week.
+  This template creates Lambda functions to keep CloudWatch Logs clean.
+  Lambda functions are invoked by Events periodically.
+  1. Put retention policy on Log Group without "retentionInDays" property.
+  2. Remove empty log groups and log streams.
 Metadata:
   AWS::CloudFormation::Interface:
     ParameterGroups:
@@ -12,9 +14,13 @@ Metadata:
         Parameters:
           - LogGroupPrefix
           - RetentionInDays
+      - Label:
+          default: Lambda invocation schedule
+        Parameters:
+          - ScheduleInDays
 Parameters:
   LogGroupPrefix:
-    Description: Prefix string of log group names.
+    Description: Prefix string of target log group names.
     Default: /aws/lambda/
     Type: String
   RetentionInDays:
@@ -22,6 +28,11 @@ Parameters:
     Default: 7
     Type: Number
     AllowedValues: [1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1827, 3653]
+  ScheduleInDays:
+    Description: Days to invoke Lambda functions in the Events Rule ScheduleExpression format.
+    Default: "2 days"
+    Type: String
+    AllowedValues: ["1 day", "2 days", "3 days", "4 days", "5 days", "6 days", "7 days"]
 Resources:
   PutRetentionPolicyRole:
     Type: AWS::IAM::Role
@@ -89,10 +100,13 @@ Resources:
             response = aws_logs.describe_log_groups(
               logGroupNamePrefix=prefix,
             )
+            if len(response['logGroups']) == 0:
+              logger.info('prefix "%s" has no log groups', prefix)
+              return {"count": 0}
             logger.info('prefix "%s" has %d log groups', prefix, len(response['logGroups']))
             cnt = put_retention_policy(response['logGroups'], days)
             while 'nextToken' in response:
-              logger.info('response has nextToken')
+              logger.info('describe_log_groups() response has nextToken')
               response = aws_logs.describe_log_groups(
                 logGroupNamePrefix=prefix,
                 nextToken=response['nextToken']
@@ -108,19 +122,155 @@ Resources:
             else:
               logger.fatal('counter is broken, rescue me')
             return {"count": cnt}
+  RemoveEmptyLogsRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: "sts:AssumeRole"
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: RemoveEmptyLogs
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "logs:DescribeLogGroups"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:*"
+              - Effect: Allow
+                Action:
+                  - "logs:DeleteLogGroup"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupPrefix}*"
+              - Effect: Allow
+                Action:
+                  - "logs:GetLogEvents"
+                  - "logs:DescribeLogStreams"
+                  - "logs:DeleteLogStream"
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${LogGroupPrefix}*:log-stream:*"
+  RemoveEmptyLogs:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: Remove empty Log Groups and Log Streams on CloudWatch Logs
+      Role: !GetAtt RemoveEmptyLogsRole.Arn
+      Handler: index.handler
+      Runtime: python3.6
+      Timeout: 30
+      MemorySize: 128
+      Environment:
+        Variables:
+          LogGroupPrefix: !Ref LogGroupPrefix
+      Code:
+        ZipFile: |
+          from collections import Counter
+          import logging
+          import os
+          import boto3
+
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+          aws_logs = boto3.client('logs')
+
+          def remove_empty_streams(grp, streams):
+            cnt = 0
+            for s in streams:
+              response = aws_logs.get_log_events(
+                logGroupName=grp,
+                logStreamName=s['logStreamName'],
+                limit=1,
+              )
+              if len(response['events']) > 0:
+                continue
+              aws_logs.delete_log_stream(
+                logGroupName=grp,
+                logStreamName=s['logStreamName']
+              )
+              logger.info('remove log stream "%s" on "%s"', s['logStreamName'], grp)
+              cnt += 1
+            return cnt
+
+          def remove_empty_logs(groups):
+            counter = Counter()
+            cnt = 0
+            for g in groups:
+              response = aws_logs.describe_log_streams(
+                logGroupName=g['logGroupName'],
+              )
+              if len(response['logStreams']) == 0:
+                logger.info('delete log group "%s" because it has no log streams', g['logGroupName'])
+                aws_logs.delete_log_group(
+                  logGroupName=g['logGroupName'],
+                )
+                counter['group'] += 1
+                continue
+              logger.info('log group "%s" has %d log streams', g['logGroupName'], len(response['logStreams']))
+              counter['stream'] += remove_empty_streams(g['logGroupName'], response['logStreams'])
+              while 'nextToken' in response:
+                logger.info('describe_log_streams() response has nextToken')
+                response = aws_logs.describe_log_streams(
+                  logGroupName=g['logGroupName'],
+                  nextToken=response['nextToken']
+                )
+                logger.info('log group "%s" has %d log streams with %s', g['logGroupName'], len(response['logStreams']), response['nextToken'])
+                counter['stream'] += remove_empty_streams(g['logGroupName'], response['logStreams'])
+            return counter['group'] + counter['stream']
+
+          def handler(event, context):
+            prefix = os.environ['LogGroupPrefix']
+            response = aws_logs.describe_log_groups(
+              logGroupNamePrefix=prefix,
+            )
+            if len(response['logGroups']) == 0:
+              logger.info('prefix "%s" has no log groups', prefix)
+              return {"count": 0}
+            logger.info('prefix "%s" has %d log groups', prefix, len(response['logGroups']))
+            cnt = remove_empty_logs(response['logGroups'])
+            while 'nextToken' in response:
+              logger.info('describe_log_groups() response has nextToken')
+              response = aws_logs.describe_log_groups(
+                logGroupNamePrefix=prefix,
+                nextToken=response['nextToken']
+              )
+              logger.info('prefix "%s" has %d log groups with %s', prefix, len(response['logGroups']), response['nextToken'])
+              cnt += remove_empty_logs(response['logGroups'])
+            if cnt == 0:
+              logger.info('no log groups/streams are in target to remove')
+            elif cnt == 1:
+              logger.info('%d log group/stream is affected', cnt)
+            elif cnt > 1:
+              logger.info('%d log groups/streams are affected', cnt)
+            else:
+              logger.fatal('counter is broken, rescue me')
+            return {"count": cnt}
+
+  # Scheduled invocation settings
   ScheduledRule:
     Type: AWS::Events::Rule
     Properties:
       Description: Scheduled rule to invoke Lambda
-      ScheduleExpression: "rate(7 days)"
+      ScheduleExpression: !Sub "rate(${ScheduleInDays})"
       State: ENABLED
       Targets:
         - Arn: !GetAtt PutRetentionPolicy.Arn
-          Id: TargetFunctionV1
-  PermissionForEventsToInvokeLambda:
+          Id: PutRetentionPolicy
+        - Arn: !GetAtt RemoveEmptyLogs.Arn
+          Id: RemoveEmptyLogs
+  PermissionToInvokePutRetentionPolicy:
     Type: AWS::Lambda::Permission
     Properties:
       Principal: "events.amazonaws.com"
       Action: "lambda:InvokeFunction"
       SourceArn: !GetAtt ScheduledRule.Arn
       FunctionName: !Ref PutRetentionPolicy
+  PermissionToInvokeRemoveEmptyLogs:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Principal: "events.amazonaws.com"
+      Action: "lambda:InvokeFunction"
+      SourceArn: !GetAtt ScheduledRule.Arn
+      FunctionName: !Ref RemoveEmptyLogs
