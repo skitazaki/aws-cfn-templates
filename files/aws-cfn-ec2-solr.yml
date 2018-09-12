@@ -18,36 +18,31 @@ Parameters:
       - Amazon-Linux-HVM
       - Ubuntu-Server-16.04-LTS-HVM
     Default: Amazon-Linux-HVM
-    Description: The Linux distribution for the AMI to be used for the Solr server
+    Description: The Linux distribution for the AMI to be used for the Solr server.
     Type: String
   SolrInstanceType:
     AllowedValues:
-      - t2.small
-      - t2.medium
-      - t2.large
-      - m3.large
-      - m3.xlarge
-      - m3.2xlarge
-      - m4.large
-      - m4.xlarge
-      - m4.2xlarge
-      - m4.4xlarge
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
       - m5.large
       - m5.xlarge
       - m5.2xlarge
       - m5.4xlarge
-    Default: t2.small
-    Description: Amazon EC2 instance type for the Solr server
+    Default: t3.small
+    Description: Amazon EC2 instance type for the Solr server.
     Type: String
   SolrDiskSize:
     Default: 8
-    Description: Disk size by GB
+    Description: Disk size by GB.
     Type: Number
     MinValue: 8
     MaxValue: 100
   SolrProfile:
     Default: ""
-    Description: Instance profile to attach the Solr server
+    Description: Instance profile to attach the Solr server.
     Type: String
   SolrVersion:
     Default : "7.4.0"
@@ -65,13 +60,11 @@ Parameters:
     Type: String
   BastionInstanceType:
     AllowedValues:
-      - t2.nano
-      - t2.micro  
-      - t2.small
-      - t2.medium
-      - t2.large
-    Default: t2.nano
-    Description: Amazon EC2 instance type for the bastion host
+      - t3.nano
+      - t3.micro  
+      - t3.small
+    Default: t3.nano
+    Description: Amazon EC2 instance type for the bastion host.
     Type: String
   KeyPairName:
     Description: >-
