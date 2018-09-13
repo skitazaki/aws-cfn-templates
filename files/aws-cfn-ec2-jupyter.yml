@@ -45,28 +45,23 @@ Parameters:
     Type: String
   NotebookInstanceType:
     AllowedValues:
-      - t2.nano
-      - t2.micro
-      - t2.small
-      - t2.medium
-      - t2.large
-      - m3.large
-      - m3.xlarge
-      - m3.2xlarge
-      - m4.large
-      - m4.xlarge
-      - m4.2xlarge
-      - m4.4xlarge
+      - t3.nano
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
       - m5.large
       - m5.xlarge
       - m5.2xlarge
       - m5.4xlarge
-    Default: t2.micro
+    Default: t3.micro
     Description: Amazon EC2 instance type for the notebook instance.
     Type: String
   NotebookDiskSize:
     Default: 8
-    Description: Disk size by GB
+    Description: Disk size by GB.
     Type: Number
     MinValue: 8
     MaxValue: 100
@@ -87,54 +82,54 @@ Parameters:
     AllowedPattern: >-
       ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
-    Description: Allowed CIDR block for external SSH access to the worker
+    Description: Allowed CIDR block for external SSH access to the notebook instance.
     Type: String
   RemoteAccessCIDR2:
     AllowedPattern: >-
       ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
-    Description: Allowed CIDR block for external SSH access to the worker
+    Description: (OPTIONAL) Allowed CIDR block for external SSH access to the notebook instance.
     Default: 0.0.0.0/0
     Type: String
   RemoteAccessCIDR3:
     AllowedPattern: >-
       ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
-    Description: Allowed CIDR block for external SSH access to the worker
+    Description: (OPTIONAL) Allowed CIDR block for external SSH access to the notebook instance.
     Default: 0.0.0.0/0
     Type: String
   RemoteAccessCIDR4:
     AllowedPattern: >-
       ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
-    Description: Allowed CIDR block for external SSH access to the worker
+    Description: (OPTIONAL) Allowed CIDR block for external SSH access to the notebook instance.
     Default: 0.0.0.0/0
     Type: String
   WebAccessCIDR1:
     AllowedPattern: >-
       ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
-    Description: Allowed CIDR block for web access
+    Description: Allowed CIDR block for web access.
     Type: String
   WebAccessCIDR2:
     AllowedPattern: >-
       ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
-    Description: Allowed CIDR block for web access
+    Description: (OPTIONAL) Allowed CIDR block for web access.
     Default: 0.0.0.0/0
     Type: String
   WebAccessCIDR3:
     AllowedPattern: >-
       ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
-    Description: Allowed CIDR block for web access
+    Description: (OPTIONAL) Allowed CIDR block for web access.
     Default: 0.0.0.0/0
     Type: String
   WebAccessCIDR4:
     AllowedPattern: >-
       ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
     ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
-    Description: Allowed CIDR block for web access
+    Description: (OPTIONAL) Allowed CIDR block for web access.
     Default: 0.0.0.0/0
     Type: String
 Conditions:
@@ -292,6 +287,7 @@ Resources:
                 pyyaml = "*"
                 xlrd = "*"  # make pandas to read Excel files
                 requests = "*"
+                boto3 = "*"
               mode: "000644"
               owner: "jupyter"
               group: "jupyter"
@@ -299,7 +295,7 @@ Resources:
               content: |
                 # Jupyter Lab
 
-                Files in this folder will not be saved permanently.
+                Files in this folder (`/opt/jupyter/notebook`) will not be saved permanently.
                 Please backup notebooks and data files on S3 bucket.
 
                 ## Snippet
@@ -309,6 +305,7 @@ Resources:
                 ```python
                 import datetime
                 import math
+                import os
 
                 import numpy as np
                 import pandas as pd
@@ -335,6 +332,12 @@ Resources:
                 # echo "To generate password: pipenv run jupyter notebook password"
                 pipenv run jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --notebook-dir=$notebook_dir >> $logfile 2>&1
               mode: "000755"
+              owner: "jupyter"
+              group: "jupyter"
+            /opt/jupyter/dataset/README:
+              content: |
+                Place local dataset here.
+              mode: "000644"
               owner: "jupyter"
               group: "jupyter"
             /etc/init.d/jupyterlab:

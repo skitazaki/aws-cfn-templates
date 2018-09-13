@@ -175,12 +175,33 @@ The server includes Python libraries defined by `Pipfile`. It will take 5-10 min
 - *tensorflow*
 - *pyyaml*
 - *requests*
+- *boto3*
 
 Jupyter server requires authentication token or password to log-in.
 Once stack is created, you can see the token in log event on CloudWatch console.
 The authentication token is shown at start up, and server log is delivered to CloudWatch Logs by *awslogs*.
 You can specify log group by *CloudWatchLogsGroupDefault* template parameter, while default log group is `/var/log/jupyterlab.log`.
 And, log stream name is instance ID.
+
+Parameters:
+
+* **VPCStackName**: VPC network stack name.
+  It must export "VPCID" and subnet ID specified by VPCSubnetID parameter.
+* **VPCSubnetID**: Exported variable name of Subnet ID in VPC stack.
+* **LinuxAMIOS**: The Linux distribution for the AMI to be used for the notebook instance.
+* **NotebookInstanceType**: Amazon EC2 instance type for the notebook instance.
+* **NotebookDiskSize**: Disk size by GB.
+* **NotebookProfile**: Instance profile to attach the notebook instance. Its role have to be allowed to put CloudWatch Logs.
+* **KeyPairName**: Key pair name. If you do not have one in this region, please create it before continuing.
+* **CloudWatchLogsGroup**: Group name of CloudWatch Logs to deliver Jupyter Lab server log.
+* **RemoteAccessCIDR1**: Allowed CIDR block for external SSH access to the notebook instance.
+* **RemoteAccessCIDR2**: (OPTIONAL) Allowed CIDR block for external SSH access to the notebook instance.
+* **RemoteAccessCIDR3**: (OPTIONAL) Allowed CIDR block for external SSH access to the notebook instance.
+* **RemoteAccessCIDR4**: (OPTIONAL) Allowed CIDR block for external SSH access to the notebook instance.
+* **WebAccessCIDR1**: Allowed CIDR block for web access.
+* **WebAccessCIDR2**: (OPTIONAL) Allowed CIDR block for web access.
+* **WebAccessCIDR3**: (OPTIONAL) Allowed CIDR block for web access.
+* **WebAccessCIDR4**: (OPTIONAL) Allowed CIDR block for web access.
 
 ### Log Policy
 
