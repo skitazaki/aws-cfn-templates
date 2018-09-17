@@ -195,13 +195,20 @@ Parameters:
 * **KeyPairName**: Key pair name. If you do not have one in this region, please create it before continuing.
 * **CloudWatchLogsGroup**: Group name of CloudWatch Logs to deliver Jupyter Lab server log.
 * **RemoteAccessCIDR1**: Allowed CIDR block for external SSH access to the notebook instance.
+* **WebAccessCIDR1**: Allowed CIDR block for web access.
 * **RemoteAccessCIDR2**: (OPTIONAL) Allowed CIDR block for external SSH access to the notebook instance.
 * **RemoteAccessCIDR3**: (OPTIONAL) Allowed CIDR block for external SSH access to the notebook instance.
 * **RemoteAccessCIDR4**: (OPTIONAL) Allowed CIDR block for external SSH access to the notebook instance.
-* **WebAccessCIDR1**: Allowed CIDR block for web access.
 * **WebAccessCIDR2**: (OPTIONAL) Allowed CIDR block for web access.
 * **WebAccessCIDR3**: (OPTIONAL) Allowed CIDR block for web access.
 * **WebAccessCIDR4**: (OPTIONAL) Allowed CIDR block for web access.
+
+Outputs:
+
+* **NotebookEIP**: Public IP address of notebook.
+* **SSHAccess**: SSH access target string with user name and IP address.
+* **WebAccess**: Web access URL with protocol and port number.
+* **JupyterAccessToken**: Jupyter access token for first login. Key is instance ID, and value is access token.
 
 ### Log Policy
 
@@ -216,12 +223,19 @@ Prepare deployment role so that CloudFormation can deploy serverless stack, and 
 
 Parameters:
 
-* *LogGroupPrefix*:
+* **LogGroupPrefix**:
     Prefix string of target log group names.
     (Default: `/aws/lambda/`)
-* *RetentionInDays*:
+* **RetentionInDays**:
     Days to set retention policy.
     (Default: `7`)
-* *ScheduleInDays*:
+* **ScheduleInDays**:
     Days to invoke Lambda functions in the Events Rule ScheduleExpression format.
     (Default: `2 days`)
+
+Outputs:
+
+* **PutRetentionPolicy**:
+    Lambda function name to put retention policy.
+* **RemoveEmptyLogs**:
+    Lambda function name to remove empty logs.

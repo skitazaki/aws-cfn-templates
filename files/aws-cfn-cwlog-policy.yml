@@ -107,11 +107,12 @@ Resources:
             cnt = put_retention_policy(response['logGroups'], days)
             while 'nextToken' in response:
               logger.info('describe_log_groups() response has nextToken')
+              token = response['nextToken']
               response = aws_logs.describe_log_groups(
                 logGroupNamePrefix=prefix,
-                nextToken=response['nextToken']
+                nextToken=token
               )
-              logger.info('prefix "%s" has %d log groups with %s', prefix, len(response['logGroups']), response['nextToken'])
+              logger.info('prefix "%s" has %d log groups with %s', prefix, len(response['logGroups']), token)
               cnt += put_retention_policy(response['logGroups'], days)
             if cnt == 0:
               logger.info('no log groups are in target to put retention policy')
@@ -212,11 +213,12 @@ Resources:
               counter['stream'] += remove_empty_streams(g['logGroupName'], response['logStreams'])
               while 'nextToken' in response:
                 logger.info('describe_log_streams() response has nextToken')
+                token = response['nextToken']
                 response = aws_logs.describe_log_streams(
                   logGroupName=g['logGroupName'],
-                  nextToken=response['nextToken']
+                  nextToken=token
                 )
-                logger.info('log group "%s" has %d log streams with %s', g['logGroupName'], len(response['logStreams']), response['nextToken'])
+                logger.info('log group "%s" has %d log streams with %s', g['logGroupName'], len(response['logStreams']), token)
                 counter['stream'] += remove_empty_streams(g['logGroupName'], response['logStreams'])
             return counter['group'] + counter['stream']
 
@@ -232,11 +234,12 @@ Resources:
             cnt = remove_empty_logs(response['logGroups'])
             while 'nextToken' in response:
               logger.info('describe_log_groups() response has nextToken')
+              token = response['nextToken']
               response = aws_logs.describe_log_groups(
                 logGroupNamePrefix=prefix,
-                nextToken=response['nextToken']
+                nextToken=token
               )
-              logger.info('prefix "%s" has %d log groups with %s', prefix, len(response['logGroups']), response['nextToken'])
+              logger.info('prefix "%s" has %d log groups with %s', prefix, len(response['logGroups']), token)
               cnt += remove_empty_logs(response['logGroups'])
             if cnt == 0:
               logger.info('no log groups/streams are in target to remove')
@@ -274,3 +277,10 @@ Resources:
       Action: "lambda:InvokeFunction"
       SourceArn: !GetAtt ScheduledRule.Arn
       FunctionName: !Ref RemoveEmptyLogs
+Outputs:
+  PutRetentionPolicy:
+    Description: Function name to put retention policy.
+    Value: !Ref PutRetentionPolicy
+  RemoveEmptyLogs:
+    Description: Function name to remove empty logs.
+    Value: !Ref RemoveEmptyLogs
