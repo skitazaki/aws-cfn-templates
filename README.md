@@ -213,12 +213,14 @@ Outputs:
 ### Log Policy
 
 `aws-cfn-cwlog-policy.yml` is a template of Lambda functions to keep CloudWatch Logs clean.
-Lambda Functions are invoked by Events periodically.
+Lambda functions are invoked by CloudWatch Events periodically.
+
+This template has two functions:
 
 1. Put retention policy on Log Group without "retentionInDays" property.
 2. Remove empty log groups and log streams.
 
-This template requires permission to create IAM Roles for Lambda functions.
+To create stack, it also requires permission to create IAM Roles for Lambda functions.
 Prepare deployment role so that CloudFormation can deploy serverless stack, and pass role to it while stack creation.
 
 Parameters:
@@ -236,6 +238,6 @@ Parameters:
 Outputs:
 
 * **PutRetentionPolicy**:
-    Lambda function name to put retention policy.
+    Name of Lambda function to put retention policy.
 * **RemoveEmptyLogs**:
-    Lambda function name to remove empty logs.
+    Name of Lambda function to remove empty log groups and log streams.

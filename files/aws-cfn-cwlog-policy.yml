@@ -4,6 +4,9 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   This template creates Lambda functions to keep CloudWatch Logs clean.
   Lambda functions are invoked by Events periodically.
+
+  This template has two functions.
+
   1. Put retention policy on Log Group without "retentionInDays" property.
   2. Remove empty log groups and log streams.
 Metadata:
@@ -112,7 +115,7 @@ Resources:
                 logGroupNamePrefix=prefix,
                 nextToken=token
               )
-              logger.info('prefix "%s" has %d log groups with %s', prefix, len(response['logGroups']), token)
+              logger.info('prefix "%s" has more %d log groups', prefix, len(response['logGroups']))
               cnt += put_retention_policy(response['logGroups'], days)
             if cnt == 0:
               logger.info('no log groups are in target to put retention policy')
@@ -218,7 +221,7 @@ Resources:
                   logGroupName=g['logGroupName'],
                   nextToken=token
                 )
-                logger.info('log group "%s" has %d log streams with %s', g['logGroupName'], len(response['logStreams']), token)
+                logger.info('log group "%s" has more %d log streams', g['logGroupName'], len(response['logStreams']))
                 counter['stream'] += remove_empty_streams(g['logGroupName'], response['logStreams'])
             return counter['group'] + counter['stream']
 
@@ -239,7 +242,7 @@ Resources:
                 logGroupNamePrefix=prefix,
                 nextToken=token
               )
-              logger.info('prefix "%s" has %d log groups with %s', prefix, len(response['logGroups']), token)
+              logger.info('prefix "%s" has more %d log groups', prefix, len(response['logGroups']))
               cnt += remove_empty_logs(response['logGroups'])
             if cnt == 0:
               logger.info('no log groups/streams are in target to remove')
@@ -279,8 +282,8 @@ Resources:
       FunctionName: !Ref RemoveEmptyLogs
 Outputs:
   PutRetentionPolicy:
-    Description: Function name to put retention policy.
+    Description: Name of Lambda function to put retention policy.
     Value: !Ref PutRetentionPolicy
   RemoveEmptyLogs:
-    Description: Function name to remove empty logs.
+    Description: Name of Lambda function to remove empty log groups and log streams.
     Value: !Ref RemoveEmptyLogs
