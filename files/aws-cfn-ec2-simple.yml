@@ -9,6 +9,10 @@ Parameters:
   VPCStackName:
     Description: VPC network stack name. It must export public subnet ID variable.
     Type: String
+  VPCSubnetID:
+    Description: Exported variable name of Subnet ID in VPC stack.
+    Default: PublicSubnet1ID
+    Type: String
   WorkerAMIOS:
     AllowedValues:
       - Amazon-Linux-HVM
@@ -16,24 +20,22 @@ Parameters:
       - Ubuntu-Server-14.04-LTS-HVM
       - Ubuntu-Server-16.04-LTS-HVM
     Default: Amazon-Linux-HVM
-    Description: The Linux distribution for the AMI to be used for the worker instances
+    Description: The Linux distribution for the AMI to be used for the worker instance.
     Type: String
   WorkerInstanceType:
     AllowedValues:
-      - t2.nano
-      - t2.micro
-      - t2.small
-      - t2.medium
-      - t2.large
-      - m3.large
-      - m3.xlarge
-      - m3.2xlarge
-      - m4.large
-      - m4.xlarge
-      - m4.2xlarge
-      - m4.4xlarge
-    Default: t2.micro
-    Description: Amazon EC2 instance type for the worker instances
+      - t3.nano
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+    Default: t3.nano
+    Description: Amazon EC2 instance type for the worker instance.
     Type: String
   WorkerDiskSize:
     Default: 8
@@ -43,7 +45,7 @@ Parameters:
     MaxValue: 100
   WorkerProfile:
     Default: ""
-    Description: Instance profile to attach the worker instances
+    Description: Instance profile to attach the worker instance.
     Type: String
   KeyPairName:
     Description: >-
@@ -94,7 +96,7 @@ Resources:
     DependsOn: Worker
     Properties:
       Handle: !Ref WaitHandle
-      Timeout: '1200'
+      Timeout: '600'
   RemoteAccessSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -137,20 +139,17 @@ Resources:
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
-          OnCreate: [setup, amazonlinux, config_amazonlinux]
-          OnCreateUbuntu: [setup, ubuntu, config_ubuntu]
+          OnCreate: [setup, pkg_amazonlinux, cfg, cfg_amazonlinux, svc_amazonlinux]
+          OnCreateUbuntu: [setup, pkg_ubuntu, cfg, cfg_ubuntu]
         setup:
           files:
             /opt/local/bin/default-awsconfig.sh:
               content: |
                 #!/bin/sh -v
-                local_user=$1
-                [ -d /home/${local_user}/.aws ] || mkdir /home/${local_user}/.aws
-                chown ${local_user} /home/${local_user}/.aws
-                chmod 700 /home/${local_user}/.aws
-                cp /opt/local/etc/default-awsconfig /home/${local_user}/.aws/config
-                chown ${local_user} /home/${local_user}/.aws/config
-                chmod 600 /home/${local_user}/.aws/config
+                [ -d ~/.aws ] || mkdir ~/.aws
+                chmod 700 ~/.aws
+                cp /opt/local/etc/default-awsconfig ~/.aws/config
+                chmod 600 ~/.aws/config
               mode: "000755"
               owner: "root"
               group: "root"
@@ -161,7 +160,7 @@ Resources:
               mode: "000644"
               owner: "root"
               group: "root"
-        amazonlinux:
+        pkg_amazonlinux:
           packages:
             yum:
               docker: []
@@ -171,7 +170,8 @@ Resources:
               python36-pip: []
               tmux: []
               zsh: []
-        ubuntu:
+              awslogs: []
+        pkg_ubuntu:
           packages:
             apt:
               docker.io: []
@@ -180,24 +180,46 @@ Resources:
               python3-pip: []
               tmux: []
               zsh: []
-        config_amazonlinux:
-          services:
-            sysvinit:
-              docker:
-                enabled: "true"
-                ensureRunning: "true"
+        cfg:
+          commands:
+            userspacesetup:
+              command: !Sub
+                - |
+                  sudo -u ${AdminUser} /opt/local/bin/default-awsconfig.sh
+                - AdminUser: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, User]
+        cfg_amazonlinux:
+          files:
+            /etc/awslogs/awscli.conf:
+              content: !Sub |
+                [plugins]
+                cwlogs = cwlogs
+                [default]
+                region = ${AWS::Region}
+            /etc/awslogs/awslogs.conf:
+              content: |
+                [general]
+                state_file = /var/lib/awslogs/agent-state
+              mode: "000644"
+              owner: "root"
+              group: "root"
           commands:
             pip:
               command: |
-                pip-3.6 install -U pip
+                # pip-3.6 install -U pip
                 pip-3.6 install pipenv ansible
-        config_ubuntu:
+        cfg_ubuntu:
           commands:
             pip:
               command: |
                 pip3 install -U pip
                 pip3 install pipenv ansible awscli
                 pip3 install -U cryptography
+        svc_amazonlinux:
+          services:
+            sysvinit:
+              docker:
+                enabled: "true"
+                ensureRunning: "true"
     Properties:
       KeyName: !Ref KeyPairName
       IamInstanceProfile: !If [UseInstanceProfile, !Ref WorkerProfile, !Ref "AWS::NoValue"]
@@ -206,7 +228,7 @@ Resources:
         - !Ref RemoteAccessSecurityGroup
       SubnetId:
         Fn::ImportValue:
-          !Sub "${VPCStackName}-PublicSubnet1ID"
+          !Sub "${VPCStackName}-${VPCSubnetID}"
       InstanceType: !Ref WorkerInstanceType
       BlockDeviceMappings:
         - DeviceName: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, RootDevice]
@@ -218,16 +240,15 @@ Resources:
         Fn::Base64: !Sub
           - |
             #!/bin/bash -v
+            # Extend PATH variable for `cfn-init` and `cfn-signal`
             if [ "${WorkerAMIOS}" == "Amazon-Linux-HVM" ]; then
-              cfninit=/opt/aws/bin/cfn-init
-              cfnsignal=/opt/aws/bin/cfn-signal
+              export PATH=$PATH:/opt/aws/bin
             else
-              cfninit=/usr/local/bin/cfn-init
-              cfnsignal=/usr/local/bin/cfn-signal
+              export PATH=$PATH:/usr/local/bin
             fi
             # Helper function
             function error_exit {
-              $cfnsignal -e 1 -r "$1" "${WaitHandle}"
+              cfn-signal -e 1 -r "$1" "${WaitHandle}"
               exit 1
             }
             ${Packager} update -y
@@ -240,12 +261,12 @@ Resources:
               pip install -U pip
               pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz
               configsets=OnCreateUbuntu
+            else
+              error_exit 'unhandled OS type ${WorkerAMIOS}'
             fi
-            $cfninit --stack ${AWS::StackId} --resource Worker --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
-            /opt/local/bin/default-awsconfig.sh ${LocalUser}
-            $cfnsignal -e 0 -r "Worker setup complete" "${WaitHandle}"
-          - LocalUser: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, User]
-            Packager: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, Packager]
+            cfn-init --stack ${AWS::StackId} --resource Worker --configsets $configsets --region ${AWS::Region} || error_exit 'Failed to run cfn-init'
+            cfn-signal -e 0 -r "Worker setup complete" "${WaitHandle}"
+          - Packager: !FindInMap [LinuxAMINameMap, !Ref WorkerAMIOS, Packager]
       Tags:
         - Key: Name
           Value: Worker
