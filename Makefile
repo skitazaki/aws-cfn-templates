@@ -26,6 +26,7 @@ upload-solr:  ## Upload template file of Solr server on EC2 stack
 
 .PHONY: upload-jupyter
 upload-jupyter:  ## Upload template file of JupyterLab on EC2 stack
+	aws cloudformation validate-template --template-body file://files/aws-cfn-ec2-jupyter.yml
 	aws s3 cp files/aws-cfn-ec2-jupyter.yml $(S3_STORAGE)/aws-cfn-ec2-jupyter.yml
 
 .PHONY: upload-cwlog-policy

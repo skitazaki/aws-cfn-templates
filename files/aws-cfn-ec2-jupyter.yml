@@ -201,7 +201,7 @@ Resources:
   WebAccessSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Enables Web Access to Hosts
+      GroupDescription: Enables Web Access to Notebook Hosts
       VpcId:
         Fn::ImportValue:
           !Sub "${VPCStackName}-VPCID"
@@ -282,7 +282,7 @@ Resources:
                 statsmodels = "*"
                 matplotlib = "*"
                 seaborn = "*"
-                # bokeh = "*"  # don't work on Jupyter Lab
+                bokeh = ">=1.0.0"  # Bokeh supports Jupyter Lab from version 1.0.0.
                 tensorflow = "*"
                 pyyaml = "*"
                 xlrd = "*"  # make pandas to read Excel files
@@ -312,11 +312,25 @@ Resources:
 
                 import matplotlib.pyplot as plt
                 import seaborn as sns
+                # from bokeh.plotting import figure
+                # from bokeh.io import output_notebook, show
 
                 sns.set_style("whitegrid")
 
                 %matplotlib inline
+                # output_notebook()
                 ```
+
+                ## References
+
+                - [Python Data Science Handbook](https://jakevdp.github.io/PythonDataScienceHandbook/)
+                - [Hands-on Machine Learning with Scikit-Learn and TensorFlow](https://github.com/ageron/handson-ml)
+                - [Companion Jupyter notebooks for the book "Deep Learning with Python"](https://github.com/fchollet/deep-learning-with-python-notebooks)
+                - [Jupyter notebooks from the scikit-learn video series](https://github.com/justmarkham/scikit-learn-videos)
+                - [TensorFlow models samples](https://github.com/tensorflow/models/tree/master/samples/core/get_started)
+                - [Bokeh in the Jupyter Notebook](http://nbviewer.jupyter.org/github/bokeh/bokeh-notebooks/blob/master/index.ipynb) on nbviewer
+                - [Sample notebooks that are published by IBM for IBM Data Science Experience.](https://github.com/IBMDataScience/sample-notebooks)
+                - [PRML algorithms implemented in Python](https://github.com/ctgk/PRML)
               mode: "000644"
               owner: "jupyter"
               group: "jupyter"
@@ -430,6 +444,9 @@ Resources:
                 sudo -u jupyter /opt/local/bin/default-awsconfig.sh
                 # skip lock mechanism because of html5lib dependency resolution error
                 cd /opt/jupyter/server && sudo -u jupyter /usr/local/bin/pipenv install --skip-lock
+                ## *jupyterlab_bokeh* module requires NodeJS runtime. However, basic functions work well on Jupyter Lab without this extension.
+                # cd /opt/jupyter/server && sudo -u jupyter /usr/local/bin/pipenv run jupyter labextension install jupyterlab_bokeh
+                ## "--skip-lock" option does not create `Pipfile.lock` file.
                 # [ -f /opt/jupyter/server/Pipfile.lock ] || exit 1
         svc_amazonlinux:
           services:
@@ -510,10 +527,7 @@ Outputs:
     Description: Jupyter access token
     Value: !GetAtt WaitCondition.Data
 Mappings:
-  # Derived from "quickstart-linux-bastion"
-  AWSAMIRegionMap:
-    AMI:
-      AMZNLINUXHVM: amzn-ami-hvm-2018.03.0.20180412-x86_64-gp2
+  AWSAMIRegionMap:  # amzn-ami-hvm-2018.03.0.20180412-x86_64-gp2
     ap-northeast-1:
       AMZNLINUXHVM: ami-28ddc154
     ap-northeast-2:

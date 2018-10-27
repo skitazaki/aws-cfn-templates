@@ -36,7 +36,7 @@ Sample file looks like:
 export AWS_PROFILE=dev
 export AWS_DEFAULT_REGION=ap-northeast-1
 export AWS_S3_BUCKET=toolboxbucket
-export AWS_S3_PREFIX=aws-cloudformation
+export AWS_S3_PREFIX=aws-cloudformation/design
 ```
 
 ### Workflow
@@ -44,7 +44,7 @@ export AWS_S3_PREFIX=aws-cloudformation
 Edit YAML template file and validate it by `validate-template` command in `aws`.
 
 ```bash
-$ aws cloudformation validate-template --template-body file://`pwd`/files/aws-cfn-vpc.yml
+$ aws cloudformation validate-template --template-body file://files/aws-cfn-vpc.yml
 ```
 
 Test stack creation and deletion using `create-stack` and `delete-stack` command.
@@ -53,8 +53,8 @@ Or "CAPABILITY_IAM" on the command line option if the template requires IAM Role
 
 ```bash
 $ aws cloudformation create-stack --stack-name ${STACK_NAME} \
-    --template-body file://`pwd`/files/aws-cfn-vpc.yml \
-    --cli-input-json file://`pwd`/utils/aws-cfn-vpc-input.json
+    --template-body file://files/aws-cfn-vpc.yml \
+    --cli-input-json file://utils/aws-cfn-vpc-input.json
 ```
 
 Note that CLI parameters JSON cannot include external file.
@@ -158,7 +158,7 @@ For more information about Solr, see official tutorial.
 `aws-cfn-ec2-jupyter.yml` is a template of Jupyter Lab server.
 Since this template depends on VPC stack, you have to specify *VPCStackName*.
 It also requires *RemoteAccessCIDR1* and *WebAccessCIDR1* parameters because a server host in this stack accepts ssh and web access on port number 22 and 8888 respectively.
-*KeyPairName* is used for ssh connection, and *WorkerProfile* is attached on EC2 instance.
+*KeyPairName* is used for ssh connection, and *NotebookProfile* is attached on EC2 instance.
 The instance profile expects CloudWatch permissions of "logs:CreateLogGroup", "logs:CreateLogStream", "logs:PutLogEvents", and "logs:DescribeLogStreams" to deliver server log file.
 
 The server includes Python libraries defined by `Pipfile`. It will take 5-10 minutes to install them.
@@ -171,7 +171,7 @@ The server includes Python libraries defined by `Pipfile`. It will take 5-10 min
 - *statsmodels*
 - *matplotlib*
 - *seaborn*
-- (*bokeh* is not included because *jupyterlab_bokeh* extension v0.5 is not downloadable.)
+- *bokeh*
 - *tensorflow*
 - *pyyaml*
 - *requests*
