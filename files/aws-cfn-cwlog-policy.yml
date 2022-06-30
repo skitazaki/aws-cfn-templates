@@ -68,7 +68,7 @@ Resources:
       Description: Put retention policy on CloudWatch Logs
       Role: !GetAtt PutRetentionPolicyRole.Arn
       Handler: index.handler
-      Runtime: python3.6
+      Runtime: python3.9
       Timeout: 10
       MemorySize: 128
       Environment:
@@ -163,7 +163,7 @@ Resources:
       Description: Remove empty Log Groups and Log Streams on CloudWatch Logs
       Role: !GetAtt RemoveEmptyLogsRole.Arn
       Handler: index.handler
-      Runtime: python3.6
+      Runtime: python3.9
       Timeout: 30
       MemorySize: 128
       Environment:
